@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -19,6 +20,13 @@ export default {
 		},
 		extend: {
 			colors: {
+				// Custom brand colors based on specifications
+				'brand-blue': '#0066FF',
+				'brand-green': '#00FF66',
+				'brand-pink': '#FF3399',
+				'brand-white': '#FFFFFF',
+				
+				// Semantic colors using the design system
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
