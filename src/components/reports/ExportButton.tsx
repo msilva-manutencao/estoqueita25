@@ -10,9 +10,10 @@ interface ExportButtonProps {
   headers: string[];
   filename: string;
   title: string;
+  className?: string;
 }
 
-export function ExportButton({ data, headers, filename, title }: ExportButtonProps) {
+export function ExportButton({ data, headers, filename, title, className }: ExportButtonProps) {
   const { toast } = useToast();
 
   const exportToExcel = () => {
@@ -161,7 +162,7 @@ export function ExportButton({ data, headers, filename, title }: ExportButtonPro
 
   if (data.length === 0) {
     return (
-      <Button variant="outline" disabled>
+      <Button variant="outline" disabled className={className}>
         <Download className="h-4 w-4 mr-2" />
         Exportar
       </Button>
@@ -171,7 +172,7 @@ export function ExportButton({ data, headers, filename, title }: ExportButtonPro
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline">
+        <Button variant="outline" className={className}>
           <Download className="h-4 w-4 mr-2" />
           Exportar
         </Button>
