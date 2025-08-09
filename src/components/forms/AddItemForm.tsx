@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,34 +6,31 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-
-const categories = [
-  "Higienização",
-  "Grãos e Insumos", 
-  "Molhos e Temperos",
-  "Laticínios",
-  "Carnes e Proteínas",
-  "Frutas e Verduras",
-];
-
-const units = [
-  "kg", "g", "L", "ml", "unidade", "pacote", "caixa", "lata"
-];
+import { useSupabaseCategories } from "@/hooks/useSupabaseCategories";
+import { useSupabaseUnits } from "@/hooks/useSupabaseUnits";
+import { useSupabaseItems } from "@/hooks/useSupabaseItems";
 
 export function AddItemForm() {
   const { toast } = useToast();
+  const { categories, loading: categoriesLoading } = useSupabaseCategories();
+  const { units, loading: unitsLoading } = useSupabaseUnits();
+  const { addItem } = useSupabaseItems();
+  
   const [formData, setFormData] = useState({
     name: "",
-    category: "",
+    category_id: "",
     quantity: "",
-    unit: "",
+    unit_id: "",
+    minimum_stock: "",
     expiryDate: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.category || !formData.quantity || !formData.unit) {
+    if (!formData.name || !formData.category_id || !formData.quantity || !formData.unit_id) {
       toast({
         title: "Erro",
         description: "Por favor, preencha todos os campos obrigatórios.",
@@ -41,21 +39,54 @@ export function AddItemForm() {
       return;
     }
 
-    // Aqui será implementada a integração com Supabase
-    toast({
-      title: "Item cadastrado!",
-      description: `${formData.name} foi adicionado ao estoque.`,
-    });
+    setIsSubmitting(true);
 
-    // Reset form
-    setFormData({
-      name: "",
-      category: "",
-      quantity: "",
-      unit: "",
-      expiryDate: "",
-    });
+    try {
+      const itemData = {
+        name: formData.name.trim(),
+        category_id: formData.category_id,
+        unit_id: formData.unit_id,
+        current_stock: parseFloat(formData.quantity),
+        minimum_stock: formData.minimum_stock ? parseFloat(formData.minimum_stock) : 10,
+        expiry_date: formData.expiryDate || null,
+      };
+
+      console.log('Dados do item a ser cadastrado:', itemData);
+
+      const success = await addItem(itemData);
+
+      if (success) {
+        // Reset form
+        setFormData({
+          name: "",
+          category_id: "",
+          quantity: "",
+          unit_id: "",
+          minimum_stock: "",
+          expiryDate: "",
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao cadastrar item:', error);
+      toast({
+        title: "Erro",
+        description: "Erro inesperado ao cadastrar o item. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (categoriesLoading || unitsLoading) {
+    return (
+      <Card className="max-w-md mx-auto">
+        <CardContent className="p-6">
+          <div className="text-center">Carregando...</div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="max-w-md mx-auto">
@@ -72,22 +103,24 @@ export function AddItemForm() {
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               placeholder="Ex: Arroz branco"
+              disabled={isSubmitting}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="category">Categoria *</Label>
             <Select 
-              value={formData.category} 
-              onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+              value={formData.category_id} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}
+              disabled={isSubmitting}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione a categoria" />
               </SelectTrigger>
               <SelectContent>
                 {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -96,34 +129,52 @@ export function AddItemForm() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="quantity">Quantidade *</Label>
+              <Label htmlFor="quantity">Quantidade Inicial *</Label>
               <Input
                 id="quantity"
                 type="number"
+                step="0.01"
+                min="0"
                 value={formData.quantity}
                 onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
                 placeholder="0"
+                disabled={isSubmitting}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="unit">Unidade *</Label>
               <Select 
-                value={formData.unit} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, unit: value }))}
+                value={formData.unit_id} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, unit_id: value }))}
+                disabled={isSubmitting}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Unidade" />
                 </SelectTrigger>
                 <SelectContent>
                   {units.map((unit) => (
-                    <SelectItem key={unit} value={unit}>
-                      {unit}
+                    <SelectItem key={unit.id} value={unit.id}>
+                      {unit.name} ({unit.abbreviation})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="minimum_stock">Estoque Mínimo</Label>
+            <Input
+              id="minimum_stock"
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.minimum_stock}
+              onChange={(e) => setFormData(prev => ({ ...prev, minimum_stock: e.target.value }))}
+              placeholder="10"
+              disabled={isSubmitting}
+            />
           </div>
 
           <div className="space-y-2">
@@ -133,11 +184,12 @@ export function AddItemForm() {
               type="date"
               value={formData.expiryDate}
               onChange={(e) => setFormData(prev => ({ ...prev, expiryDate: e.target.value }))}
+              disabled={isSubmitting}
             />
           </div>
 
-          <Button type="submit" className="w-full">
-            Cadastrar Item
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? "Cadastrando..." : "Cadastrar Item"}
           </Button>
         </form>
       </CardContent>

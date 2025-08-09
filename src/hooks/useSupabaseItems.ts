@@ -25,6 +25,8 @@ export function useSupabaseItems() {
   const fetchItems = async () => {
     try {
       setLoading(true);
+      console.log('Buscando itens no Supabase...');
+      
       const { data, error } = await supabase
         .from('items')
         .select(`
@@ -43,6 +45,7 @@ export function useSupabaseItems() {
         return;
       }
 
+      console.log('Itens carregados do Supabase:', data);
       setItems(data || []);
     } catch (error) {
       console.error('Erro na conexão:', error);
@@ -58,6 +61,8 @@ export function useSupabaseItems() {
 
   const addStockMovement = async (itemId: string, quantity: number, type: 'entrada' | 'saida', description?: string) => {
     try {
+      console.log('Adicionando movimentação:', { itemId, quantity, type, description });
+      
       const { error } = await supabase
         .from('stock_movements')
         .insert({
@@ -98,23 +103,28 @@ export function useSupabaseItems() {
     unit_id: string;
     current_stock: number;
     minimum_stock?: number;
-    expiry_date?: string;
+    expiry_date?: string | null;
   }) => {
     try {
-      const { error } = await supabase
+      console.log('Inserindo novo item:', itemData);
+      
+      const { data, error } = await supabase
         .from('items')
-        .insert(itemData);
+        .insert(itemData)
+        .select();
 
       if (error) {
         console.error('Erro ao adicionar item:', error);
         toast({
           title: "Erro",
-          description: "Não foi possível adicionar o item",
+          description: `Não foi possível adicionar o item: ${error.message}`,
           variant: "destructive",
         });
         return false;
       }
 
+      console.log('Item inserido com sucesso:', data);
+      
       toast({
         title: "Sucesso",
         description: "Item adicionado com sucesso",
@@ -125,6 +135,11 @@ export function useSupabaseItems() {
       return true;
     } catch (error) {
       console.error('Erro na conexão:', error);
+      toast({
+        title: "Erro de Conexão",
+        description: "Verifique sua conexão com a internet",
+        variant: "destructive",
+      });
       return false;
     }
   };

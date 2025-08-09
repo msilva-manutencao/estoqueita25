@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,14 +9,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Search, Edit, Trash2, Package, SortAsc, SortDesc, Filter } from "lucide-react";
-import { mockItems, categories } from "@/data/mockData";
 import { EditItemForm } from "@/components/forms/EditItemForm";
+import { useSupabaseItems } from "@/hooks/useSupabaseItems";
+import { useSupabaseCategories } from "@/hooks/useSupabaseCategories";
 
 type SortField = 'name' | 'currentStock' | 'category' | 'status';
 type SortOrder = 'asc' | 'desc';
 
 export default function ItemsPage() {
-  const [items, setItems] = useState(mockItems);
+  const { items, loading } = useSupabaseItems();
+  const { categories } = useSupabaseCategories();
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("Todos");
   const [stockFilter, setStockFilter] = useState("all");
@@ -23,8 +27,21 @@ export default function ItemsPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [editingItem, setEditingItem] = useState<any>(null);
 
+  // Transform Supabase data to match the expected format
+  const transformedItems = items.map(item => ({
+    id: item.id,
+    name: item.name,
+    category: item.categories?.name || 'Sem categoria',
+    currentStock: item.current_stock,
+    unit: item.units?.abbreviation || item.units?.name || 'un',
+    expiryDate: item.expiry_date,
+  }));
+
+  // Create categories list including "Todos"
+  const categoryOptions = ["Todos", ...categories.map(cat => cat.name)];
+
   // Filter and sort items
-  const filteredAndSortedItems = items
+  const filteredAndSortedItems = transformedItems
     .filter(item => {
       const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === "Todos" || item.category === categoryFilter;
@@ -75,13 +92,12 @@ export default function ItemsPage() {
   };
 
   const handleDeleteItem = (itemId: string) => {
-    setItems(items.filter(item => item.id !== itemId));
+    // TODO: Implement delete functionality with Supabase
+    console.log('Delete item:', itemId);
   };
 
   const handleEditItem = (updatedItem: any) => {
-    setItems(items.map(item => 
-      item.id === updatedItem.id ? updatedItem : item
-    ));
+    // TODO: Implement edit functionality with Supabase
     setEditingItem(null);
   };
 
@@ -101,6 +117,16 @@ export default function ItemsPage() {
       <SortAsc className="h-4 w-4" /> : 
       <SortDesc className="h-4 w-4" />;
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <div className="text-lg">Carregando itens...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -150,7 +176,7 @@ export default function ItemsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map(category => (
+                  {categoryOptions.map(category => (
                     <SelectItem key={category} value={category}>
                       {category}
                     </SelectItem>
