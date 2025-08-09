@@ -14,7 +14,203 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      items: {
+        Row: {
+          category_id: string
+          created_at: string
+          current_stock: number
+          expiry_date: string | null
+          id: string
+          minimum_stock: number | null
+          name: string
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          current_stock?: number
+          expiry_date?: string | null
+          id?: string
+          minimum_stock?: number | null
+          name: string
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          current_stock?: number
+          expiry_date?: string | null
+          id?: string
+          minimum_stock?: number | null
+          name?: string
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "items_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      standard_list_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          quantity: number
+          standard_list_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          quantity: number
+          standard_list_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          quantity?: number
+          standard_list_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "standard_list_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "standard_list_items_standard_list_id_fkey"
+            columns: ["standard_list_id"]
+            isOneToOne: false
+            referencedRelation: "standard_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      standard_lists: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      stock_movements: {
+        Row: {
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          item_id: string
+          movement_type: string
+          quantity: number
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          item_id: string
+          movement_type: string
+          quantity: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          item_id?: string
+          movement_type?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      units: {
+        Row: {
+          abbreviation: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          abbreviation: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          abbreviation?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
