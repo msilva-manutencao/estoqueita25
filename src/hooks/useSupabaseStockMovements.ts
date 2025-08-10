@@ -74,7 +74,14 @@ export function useSupabaseStockMovements() {
       }
 
       console.log('Movimentações carregadas:', data);
-      setMovements(data || []);
+      
+      // Fazemos um cast seguro dos dados, garantindo que movement_type seja do tipo correto
+      const typedMovements = (data || []).map(movement => ({
+        ...movement,
+        movement_type: movement.movement_type as 'entrada' | 'saida'
+      })) as SupabaseStockMovement[];
+      
+      setMovements(typedMovements);
     } catch (error) {
       console.error('Erro na conexão:', error);
       toast({
@@ -84,6 +91,70 @@ export function useSupabaseStockMovements() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const addMovement = async (movement: {
+    item_id: string;
+    quantity: number;
+    movement_type: 'entrada' | 'saida';
+    description?: string;
+    date?: string;
+  }) => {
+    try {
+      console.log('Adicionando movimentação:', movement);
+      
+      const { data, error } = await supabase
+        .from('stock_movements')
+        .insert([{
+          ...movement,
+          date: movement.date || new Date().toISOString(),
+        }])
+        .select(`
+          *,
+          items (
+            name,
+            categories (name),
+            units (name, abbreviation)
+          )
+        `)
+        .single();
+
+      if (error) {
+        console.error('Erro ao adicionar movimentação:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível registrar a movimentação",
+          variant: "destructive",
+        });
+        return null;
+      }
+
+      console.log('Movimentação adicionada:', data);
+      
+      // Cast seguro do movimento adicionado
+      const typedMovement = {
+        ...data,
+        movement_type: data.movement_type as 'entrada' | 'saida'
+      } as SupabaseStockMovement;
+      
+      // Atualizar a lista local
+      setMovements(prev => [typedMovement, ...prev]);
+      
+      toast({
+        title: "Sucesso",
+        description: "Movimentação registrada com sucesso",
+      });
+      
+      return typedMovement;
+    } catch (error) {
+      console.error('Erro na conexão:', error);
+      toast({
+        title: "Erro de Conexão",
+        description: "Verifique sua conexão com a internet",
+        variant: "destructive",
+      });
+      return null;
     }
   };
 
@@ -113,6 +184,7 @@ export function useSupabaseStockMovements() {
     movements,
     loading,
     fetchMovements,
+    addMovement,
     getMovementsSummary
   };
 }
