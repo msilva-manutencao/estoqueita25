@@ -13,7 +13,15 @@ interface StandardListsViewProps {
 }
 
 export function StandardListsView({ onCreateNew, onEdit }: StandardListsViewProps) {
-  const { standardLists, loading, deleteStandardList, executeBulkWithdraw } = useSupabaseStandardLists();
+  const { 
+    standardLists, 
+    loading, 
+    deleteStandardList, 
+    executeBulkWithdraw,
+    updateStandardListItem,
+    removeStandardListItem
+  } = useSupabaseStandardLists();
+  
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedList, setSelectedList] = useState<any>(null);
   const [processingListId, setProcessingListId] = useState<string | null>(null);
@@ -25,26 +33,27 @@ export function StandardListsView({ onCreateNew, onEdit }: StandardListsViewProp
   };
 
   const handleView = (list: any) => {
-    // Convert to format expected by modal
-    const formattedList = {
-      ...list,
-      items: list.items.map((item: any) => ({
-        itemId: item.item_id,
-        itemName: item.items?.name || 'Item não encontrado',
-        quantity: item.quantity,
-        unit: item.items?.units?.abbreviation || item.items?.units?.name || 'un'
-      }))
-    };
-    setSelectedList(formattedList);
+    setSelectedList(list);
     setViewModalOpen(true);
   };
 
-  const handleBulkWithdraw = async (list: any) => {
-    if (window.confirm(`Confirma a baixa em lote da lista "${list.name}"? Esta ação não pode ser desfeita.`)) {
-      setProcessingListId(list.id);
-      await executeBulkWithdraw(list.id);
-      setProcessingListId(null);
+  const handleBulkWithdraw = async (listId: string) => {
+    setProcessingListId(listId);
+    const success = await executeBulkWithdraw(listId);
+    setProcessingListId(null);
+    
+    if (success) {
+      // Close modal if it's open
+      setViewModalOpen(false);
     }
+  };
+
+  const handleUpdateItem = async (listId: string, itemId: string, newQuantity: number) => {
+    await updateStandardListItem(listId, itemId, newQuantity);
+  };
+
+  const handleRemoveItem = async (listId: string, itemId: string) => {
+    await removeStandardListItem(listId, itemId);
   };
 
   const totalItems = (items: any[]) => {
@@ -151,7 +160,7 @@ export function StandardListsView({ onCreateNew, onEdit }: StandardListsViewProp
                     
                     <Button
                       size="sm"
-                      onClick={() => handleBulkWithdraw(list)}
+                      onClick={() => handleBulkWithdraw(list.id)}
                       disabled={processingListId === list.id}
                       className="flex items-center space-x-1"
                     >
@@ -182,6 +191,9 @@ export function StandardListsView({ onCreateNew, onEdit }: StandardListsViewProp
         list={selectedList}
         open={viewModalOpen}
         onOpenChange={setViewModalOpen}
+        onExecuteBulkWithdraw={handleBulkWithdraw}
+        onUpdateItem={handleUpdateItem}
+        onRemoveItem={handleRemoveItem}
       />
     </div>
   );

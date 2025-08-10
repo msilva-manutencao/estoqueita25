@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -197,6 +196,72 @@ export function useSupabaseStandardLists() {
     }
   };
 
+  const updateStandardListItem = async (listId: string, itemId: string, newQuantity: number) => {
+    try {
+      console.log('Atualizando item da lista:', { listId, itemId, newQuantity });
+
+      const { error } = await supabase
+        .from('standard_list_items')
+        .update({ quantity: newQuantity })
+        .eq('standard_list_id', listId)
+        .eq('id', itemId);
+
+      if (error) {
+        console.error('Erro ao atualizar item:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível atualizar o item",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Item atualizado com sucesso",
+      });
+
+      await fetchStandardLists();
+      return true;
+    } catch (error) {
+      console.error('Erro na conexão:', error);
+      return false;
+    }
+  };
+
+  const removeStandardListItem = async (listId: string, itemId: string) => {
+    try {
+      console.log('Removendo item da lista:', { listId, itemId });
+
+      const { error } = await supabase
+        .from('standard_list_items')
+        .delete()
+        .eq('standard_list_id', listId)
+        .eq('id', itemId);
+
+      if (error) {
+        console.error('Erro ao remover item:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível remover o item",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Item removido com sucesso",
+      });
+
+      await fetchStandardLists();
+      return true;
+    } catch (error) {
+      console.error('Erro na conexão:', error);
+      return false;
+    }
+  };
+
   const executeBulkWithdraw = async (listId: string) => {
     try {
       console.log('Executando baixa em lote para lista:', listId);
@@ -273,6 +338,8 @@ export function useSupabaseStandardLists() {
     fetchStandardLists,
     createStandardList,
     deleteStandardList,
+    updateStandardListItem,
+    removeStandardListItem,
     executeBulkWithdraw
   };
 }

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,41 +9,30 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Package } from "lucide-react";
 import { BatchOperationForm } from "./BatchOperationForm";
-
-// Mock data - será substituído pela integração com Supabase
-const mockItems = [
-  { id: "1", name: "Arroz branco", category: "Grãos e Insumos", unit: "kg", currentStock: 25 },
-  { id: "2", name: "Feijão preto", category: "Grãos e Insumos", unit: "kg", currentStock: 15 },
-  { id: "3", name: "Molho de tomate", category: "Molhos e Temperos", unit: "lata", currentStock: 50 },
-  { id: "4", name: "Copo descartável", category: "Higienização", unit: "pacote", currentStock: 10 },
-];
-
-const categories = [
-  "Higienização",
-  "Grãos e Insumos", 
-  "Molhos e Temperos",
-  "Laticínios",
-  "Carnes e Proteínas",
-  "Frutas e Verduras",
-];
+import { useSupabaseItems } from "@/hooks/useSupabaseItems";
 
 export function WithdrawForm() {
   const { toast } = useToast();
+  const { items, loading, addStockMovement } = useSupabaseItems();
   const [selectedItem, setSelectedItem] = useState("");
   const [quantity, setQuantity] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [showBatchDialog, setShowBatchDialog] = useState(false);
 
-  const filteredItems = mockItems.filter(item => {
-    const matchesCategory = selectedCategory === "" || item.category === selectedCategory;
+  // Get unique categories from items
+  const categories = Array.from(new Set(items.map(item => item.categories?.name).filter(Boolean)));
+
+  const filteredItems = items.filter(item => {
+    const matchesCategory = selectedCategory === "" || item.categories?.name === selectedCategory;
     const matchesSearch = searchTerm === "" || item.name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
+    const hasStock = item.current_stock > 0;
+    return matchesCategory && matchesSearch && hasStock;
   });
 
-  const selectedItemData = mockItems.find(item => item.id === selectedItem);
+  const selectedItemData = items.find(item => item.id === selectedItem);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!selectedItem || !quantity) {
@@ -55,7 +45,7 @@ export function WithdrawForm() {
     }
 
     const withdrawQuantity = parseFloat(quantity);
-    if (selectedItemData && withdrawQuantity > selectedItemData.currentStock) {
+    if (selectedItemData && withdrawQuantity > selectedItemData.current_stock) {
       toast({
         title: "Erro",
         description: "Quantidade solicitada maior que o estoque disponível.",
@@ -64,18 +54,32 @@ export function WithdrawForm() {
       return;
     }
 
-    // Aqui será implementada a integração com Supabase
-    toast({
-      title: "Baixa realizada!",
-      description: `${quantity} ${selectedItemData?.unit} de ${selectedItemData?.name} foram retirados do estoque.`,
-    });
+    const success = await addStockMovement(
+      selectedItem, 
+      withdrawQuantity, 
+      'saida', 
+      'Baixa manual de estoque'
+    );
 
-    // Reset form
-    setSelectedItem("");
-    setQuantity("");
-    setSelectedCategory("");
-    setSearchTerm("");
+    if (success) {
+      // Reset form
+      setSelectedItem("");
+      setQuantity("");
+      setSelectedCategory("");
+      setSearchTerm("");
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Carregando itens...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -108,8 +112,9 @@ export function WithdrawForm() {
                       <SelectValue placeholder="Todas as categorias" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="">Todas as categorias</SelectItem>
                       {categories.map((category) => (
-                        <SelectItem key={category} value={category}>
+                        <SelectItem key={category} value={category || ""}>
                           {category}
                         </SelectItem>
                       ))}
@@ -132,7 +137,7 @@ export function WithdrawForm() {
 
             {/* Seleção do Item */}
             <div className="space-y-2">
-              <Label htmlFor="item">Item * ({filteredItems.length} itens encontrados)</Label>
+              <Label htmlFor="item">Item * ({filteredItems.length} itens disponíveis)</Label>
               <Select value={selectedItem} onValueChange={setSelectedItem}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o item" />
@@ -140,7 +145,10 @@ export function WithdrawForm() {
                 <SelectContent className="max-h-60">
                   {filteredItems.length === 0 ? (
                     <div className="p-4 text-center text-muted-foreground">
-                      Nenhum item encontrado
+                      {items.length === 0 
+                        ? "Nenhum item cadastrado no estoque"
+                        : "Nenhum item encontrado com estoque disponível"
+                      }
                     </div>
                   ) : (
                     filteredItems.map((item) => (
@@ -148,7 +156,7 @@ export function WithdrawForm() {
                         <div className="flex flex-col items-start">
                           <span className="font-medium">{item.name}</span>
                           <span className="text-xs text-muted-foreground">
-                            {item.category} • {item.currentStock} {item.unit} disponível
+                            {item.categories?.name} • {item.current_stock} {item.units?.abbreviation || item.units?.name} disponível
                           </span>
                         </div>
                       </SelectItem>
@@ -165,10 +173,10 @@ export function WithdrawForm() {
                     <strong>Item selecionado:</strong> {selectedItemData.name}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    <strong>Categoria:</strong> {selectedItemData.category}
+                    <strong>Categoria:</strong> {selectedItemData.categories?.name}
                   </p>
                   <p className="text-sm font-medium">
-                    <strong>Estoque atual:</strong> {selectedItemData.currentStock} {selectedItemData.unit}
+                    <strong>Estoque atual:</strong> {selectedItemData.current_stock} {selectedItemData.units?.abbreviation || selectedItemData.units?.name}
                   </p>
                 </div>
               </div>
@@ -183,7 +191,7 @@ export function WithdrawForm() {
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 placeholder="0"
-                max={selectedItemData?.currentStock}
+                max={selectedItemData?.current_stock}
               />
             </div>
 
@@ -191,7 +199,7 @@ export function WithdrawForm() {
               <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
                 <p className="text-sm font-medium text-primary">
                   <strong>Saldo após baixa:</strong> {" "}
-                  {(selectedItemData.currentStock - parseFloat(quantity || "0")).toFixed(2)} {selectedItemData.unit}
+                  {(selectedItemData.current_stock - parseFloat(quantity || "0")).toFixed(2)} {selectedItemData.units?.abbreviation || selectedItemData.units?.name}
                 </p>
               </div>
             )}
