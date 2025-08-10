@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,104 +8,109 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Download, FileText, TrendingUp, TrendingDown, Package } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { mockItems, mockStockMovements, categories, getExpiringItems, getLowStockItems } from "@/data/mockData";
+import { Calendar, Download, FileText, TrendingUp, TrendingDown, Package, AlertTriangle, Loader2 } from "lucide-react";
+import { useSupabaseItems } from "@/hooks/useSupabaseItems";
+import { useSupabaseCategories } from "@/hooks/useSupabaseCategories";
+import { useSupabaseStockMovements } from "@/hooks/useSupabaseStockMovements";
 import { ExportButton } from "./ExportButton";
 
 export function ReportsView() {
-  const { toast } = useToast();
-  const [selectedReport, setSelectedReport] = useState("movements");
-  const [dateFrom, setDateFrom] = useState("2024-01-01");
-  const [dateTo, setDateTo] = useState("2024-12-31");
+  const { items, loading: itemsLoading } = useSupabaseItems();
+  const { categories } = useSupabaseCategories();
+  const { movements, loading: movementsLoading, fetchMovements, getMovementsSummary } = useSupabaseStockMovements();
+  
+  const [selectedReport, setSelectedReport] = useState("stock");
+  const [dateFrom, setDateFrom] = useState(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+  const [dateTo, setDateTo] = useState(new Date().toISOString().split('T')[0]);
   const [selectedCategory, setSelectedCategory] = useState("Todos");
+  const [movementType, setMovementType] = useState<'entrada' | 'saida' | 'all'>('all');
 
-  const filteredMovements = mockStockMovements.filter(movement => {
-    const movementDate = new Date(movement.date);
-    const fromDate = new Date(dateFrom);
-    const toDate = new Date(dateTo);
-    
-    const dateMatch = movementDate >= fromDate && movementDate <= toDate;
-    const categoryMatch = selectedCategory === "Todos" || 
-      mockItems.find(item => item.id === movement.itemId)?.category === selectedCategory;
-    
-    return dateMatch && categoryMatch;
-  });
+  const allCategories = ["Todos", ...categories.map(cat => cat.name)];
 
-  const expiringItems = getExpiringItems(30);
-  const lowStockItems = getLowStockItems(10);
+  // Filtrar itens por categoria
+  const filteredItems = items.filter(item => 
+    selectedCategory === "Todos" || item.categories?.name === selectedCategory
+  );
 
-  const stockSummary = mockItems.map(item => {
-    const movements = mockStockMovements.filter(m => m.itemId === item.id);
-    const totalEntries = movements.filter(m => m.type === 'entrada').reduce((sum, m) => sum + m.quantity, 0);
-    const totalExits = movements.filter(m => m.type === 'saida').reduce((sum, m) => sum + m.quantity, 0);
-    
-    return {
-      ...item,
-      totalEntries,
-      totalExits,
-      netMovement: totalEntries - totalExits
-    };
-  });
+  // Calcular alertas
+  const lowStockItems = filteredItems.filter(item => 
+    item.current_stock < (item.minimum_stock || 10)
+  );
+
+  const expiringItems = filteredItems.filter(item => 
+    item.expiry_date && 
+    new Date(item.expiry_date).getTime() - new Date().getTime() <= 60 * 24 * 60 * 60 * 1000 &&
+    new Date(item.expiry_date).getTime() > new Date().getTime()
+  );
+
+  // Buscar movimentações com filtros
+  const handleFetchMovements = () => {
+    fetchMovements({
+      startDate: dateFrom,
+      endDate: dateTo,
+      movementType: movementType
+    });
+  };
+
+  const movementsSummary = getMovementsSummary(movements);
 
   const getReportData = () => {
     switch (selectedReport) {
+      case "stock":
+        return {
+          title: "Relatório de Estoque Físico",
+          headers: ["Item", "Categoria", "Estoque Atual", "Estoque Mínimo", "Unidade", "Data de Validade", "Status"],
+          data: filteredItems.map(item => [
+            item.name,
+            item.categories?.name || 'Sem categoria',
+            item.current_stock.toString(),
+            (item.minimum_stock || 10).toString(),
+            item.units?.abbreviation || item.units?.name || 'un',
+            item.expiry_date ? new Date(item.expiry_date).toLocaleDateString('pt-BR') : 'Sem data',
+            item.current_stock < (item.minimum_stock || 10) ? 'Estoque Baixo' : 
+            (item.expiry_date && new Date(item.expiry_date).getTime() - new Date().getTime() <= 30 * 24 * 60 * 60 * 1000) ? 'Vencendo' : 'Normal'
+          ])
+        };
+      
       case "movements":
         return {
           title: "Relatório de Movimentações",
-          headers: ["Data", "Item", "Tipo", "Quantidade", "Descrição"],
-          data: filteredMovements.map(movement => [
+          headers: ["Data", "Item", "Categoria", "Tipo", "Quantidade", "Unidade", "Descrição"],
+          data: movements.map(movement => [
             new Date(movement.date).toLocaleDateString('pt-BR'),
-            movement.itemName,
-            movement.type === 'entrada' ? 'Entrada' : 'Saída',
-            `${movement.quantity} ${mockItems.find(i => i.id === movement.itemId)?.unit || ''}`,
+            movement.items?.name || 'Item não encontrado',
+            movement.items?.categories?.name || 'Sem categoria',
+            movement.movement_type === 'entrada' ? 'Entrada' : 'Saída',
+            movement.quantity.toString(),
+            movement.items?.units?.abbreviation || movement.items?.units?.name || 'un',
             movement.description || '-'
           ])
         };
       
-      case "stock":
-        return {
-          title: "Relatório de Estoque Atual",
-          headers: ["Item", "Categoria", "Estoque", "Unidade", "Validade"],
-          data: mockItems.map(item => [
+      case "alerts":
+        const alertsData = [
+          ...lowStockItems.map(item => [
             item.name,
-            item.category,
-            item.currentStock.toString(),
-            item.unit,
-            item.expiryDate ? new Date(item.expiryDate).toLocaleDateString('pt-BR') : 'Sem data'
-          ])
-        };
-      
-      case "expiring":
-        return {
-          title: "Relatório de Itens Vencendo",
-          headers: ["Item", "Categoria", "Estoque", "Data de Validade", "Dias para Vencer"],
-          data: expiringItems.map(item => {
-            const daysToExpiry = item.expiryDate 
-              ? Math.ceil((new Date(item.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-              : 0;
-            return [
-              item.name,
-              item.category,
-              `${item.currentStock} ${item.unit}`,
-              item.expiryDate ? new Date(item.expiryDate).toLocaleDateString('pt-BR') : '-',
-              daysToExpiry.toString()
-            ];
-          })
-        };
-      
-      case "summary":
-        return {
-          title: "Relatório Resumo por Item",
-          headers: ["Item", "Categoria", "Estoque Atual", "Total Entradas", "Total Saídas", "Movimento Líquido"],
-          data: stockSummary.map(item => [
+            item.categories?.name || 'Sem categoria',
+            'Estoque Baixo',
+            `Atual: ${item.current_stock}, Mínimo: ${item.minimum_stock || 10}`,
+            item.units?.abbreviation || item.units?.name || 'un',
+            'Alta'
+          ]),
+          ...expiringItems.map(item => [
             item.name,
-            item.category,
-            `${item.currentStock} ${item.unit}`,
-            `${item.totalEntries} ${item.unit}`,
-            `${item.totalExits} ${item.unit}`,
-            `${item.netMovement > 0 ? '+' : ''}${item.netMovement} ${item.unit}`
+            item.categories?.name || 'Sem categoria',
+            'Vencimento Próximo',
+            item.expiry_date ? new Date(item.expiry_date).toLocaleDateString('pt-BR') : 'Sem data',
+            item.units?.abbreviation || item.units?.name || 'un',
+            new Date(item.expiry_date!).getTime() - new Date().getTime() <= 7 * 24 * 60 * 60 * 1000 ? 'Crítica' : 'Média'
           ])
+        ];
+        
+        return {
+          title: "Relatório de Alertas",
+          headers: ["Item", "Categoria", "Tipo de Alerta", "Detalhes", "Unidade", "Prioridade"],
+          data: alertsData
         };
       
       default:
@@ -115,13 +121,15 @@ export function ReportsView() {
   const reportData = getReportData();
 
   const statistics = {
-    totalItems: mockItems.length,
-    totalMovements: filteredMovements.length,
-    totalEntries: filteredMovements.filter(m => m.type === 'entrada').length,
-    totalExits: filteredMovements.filter(m => m.type === 'saida').length,
-    expiringItems: expiringItems.length,
-    lowStockItems: lowStockItems.length
+    totalItems: filteredItems.length,
+    totalMovements: movements.length,
+    totalEntries: movementsSummary.entries.count,
+    totalExits: movementsSummary.exits.count,
+    lowStockItems: lowStockItems.length,
+    expiringItems: expiringItems.length
   };
+
+  const isLoading = itemsLoading || movementsLoading;
 
   return (
     <div className="space-y-6">
@@ -173,7 +181,7 @@ export function ReportsView() {
         
         <Card>
           <CardContent className="p-4 text-center">
-            <Package className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
             <div className="text-2xl font-bold">{statistics.lowStockItems}</div>
             <div className="text-xs text-muted-foreground">Estoque Baixo</div>
           </CardContent>
@@ -188,63 +196,118 @@ export function ReportsView() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Filtros e Configurações</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label>Tipo de Relatório</Label>
-              <Select value={selectedReport} onValueChange={setSelectedReport}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="movements">Movimentações</SelectItem>
-                  <SelectItem value="stock">Estoque Atual</SelectItem>
-                  <SelectItem value="expiring">Itens Vencendo</SelectItem>
-                  <SelectItem value="summary">Resumo por Item</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Data Inicial</Label>
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Data Final</Label>
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Categoria</Label>
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map(category => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <Tabs value={selectedReport} onValueChange={setSelectedReport} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="stock">Estoque Físico</TabsTrigger>
+          <TabsTrigger value="movements">Movimentações</TabsTrigger>
+          <TabsTrigger value="alerts">Alertas</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="stock" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Filtros - Relatório de Estoque</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Categoria</Label>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allCategories.map(category => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="movements" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Filtros - Relatório de Movimentações</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label>Data Inicial</Label>
+                  <Input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Data Final</Label>
+                  <Input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Tipo de Movimento</Label>
+                  <Select value={movementType} onValueChange={(value: 'entrada' | 'saida' | 'all') => setMovementType(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="entrada">Entrada</SelectItem>
+                      <SelectItem value="saida">Saída</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>&nbsp;</Label>
+                  <Button onClick={handleFetchMovements} className="w-full">
+                    <Download className="h-4 w-4 mr-2" />
+                    Buscar
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="alerts" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Filtros - Relatório de Alertas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Categoria</Label>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allCategories.map(category => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -259,7 +322,12 @@ export function ReportsView() {
           </div>
         </CardHeader>
         <CardContent>
-          {reportData.data.length > 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin mr-2" />
+              <span>Carregando dados...</span>
+            </div>
+          ) : reportData.data.length > 0 ? (
             <div className="max-h-96 overflow-y-auto">
               <Table>
                 <TableHeader>

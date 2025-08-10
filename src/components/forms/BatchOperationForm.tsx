@@ -8,9 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Package, Download, Upload } from "lucide-react";
+import { Plus, Trash2, Package, Download, Upload, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { mockItems, categories, getItemsByCategory, mockStandardLists } from "@/data/mockData";
+import { useSupabaseItems } from "@/hooks/useSupabaseItems";
+import { useSupabaseCategories } from "@/hooks/useSupabaseCategories";
+import { useSupabaseStandardLists } from "@/hooks/useSupabaseStandardLists";
 
 interface BatchItem {
   itemId: string;
@@ -18,6 +20,7 @@ interface BatchItem {
   quantity: number;
   unit: string;
   category: string;
+  currentStock: number;
 }
 
 interface BatchOperationFormProps {
@@ -27,24 +30,35 @@ interface BatchOperationFormProps {
 
 export function BatchOperationForm({ operation, onClose }: BatchOperationFormProps) {
   const { toast } = useToast();
+  const { items, addStockMovement } = useSupabaseItems();
+  const { categories } = useSupabaseCategories();
+  const { standardLists } = useSupabaseStandardLists();
+  
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedItems, setSelectedItems] = useState<BatchItem[]>([]);
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [selectedStandardList, setSelectedStandardList] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const filteredItems = getItemsByCategory(selectedCategory).filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const allCategories = ["Todos", ...categories.map(cat => cat.name)];
 
-  const handleItemToggle = (item: typeof mockItems[0], checked: boolean) => {
+  const filteredItems = items.filter(item => {
+    const categoryMatch = selectedCategory === "Todos" || 
+      (item.categories?.name === selectedCategory);
+    const searchMatch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return categoryMatch && searchMatch;
+  });
+
+  const handleItemToggle = (item: typeof items[0], checked: boolean) => {
     if (checked) {
       const batchItem: BatchItem = {
         itemId: item.id,
         itemName: item.name,
         quantity: 0,
-        unit: item.unit,
-        category: item.category
+        unit: item.units?.abbreviation || item.units?.name || 'un',
+        category: item.categories?.name || 'Sem categoria',
+        currentStock: item.current_stock
       };
       setSelectedItems(prev => [...prev, batchItem]);
       setQuantities(prev => ({ ...prev, [item.id]: "1" }));
@@ -70,32 +84,37 @@ export function BatchOperationForm({ operation, onClose }: BatchOperationFormPro
   const handleLoadStandardList = () => {
     if (!selectedStandardList) return;
     
-    const standardList = mockStandardLists.find(list => list.id === selectedStandardList);
+    const standardList = standardLists.find(list => list.id === selectedStandardList);
     if (!standardList) return;
 
-    const newItems: BatchItem[] = standardList.items.map(item => ({
-      itemId: item.itemId,
-      itemName: item.itemName,
-      quantity: item.quantity,
-      unit: item.unit,
-      category: mockItems.find(i => i.id === item.itemId)?.category || "Outros"
-    }));
+    const newItems: BatchItem[] = [];
+    const newQuantities: Record<string, string> = {};
+
+    standardList.items.forEach(listItem => {
+      const stockItem = items.find(item => item.id === listItem.item_id);
+      if (stockItem) {
+        newItems.push({
+          itemId: listItem.item_id,
+          itemName: stockItem.name,
+          quantity: listItem.quantity,
+          unit: stockItem.units?.abbreviation || stockItem.units?.name || 'un',
+          category: stockItem.categories?.name || 'Sem categoria',
+          currentStock: stockItem.current_stock
+        });
+        newQuantities[listItem.item_id] = listItem.quantity.toString();
+      }
+    });
 
     setSelectedItems(newItems);
-    
-    const newQuantities: Record<string, string> = {};
-    standardList.items.forEach(item => {
-      newQuantities[item.itemId] = item.quantity.toString();
-    });
     setQuantities(newQuantities);
 
     toast({
       title: "Lista carregada!",
-      description: `${standardList.items.length} itens carregados da lista "${standardList.name}".`,
+      description: `${newItems.length} itens carregados da lista "${standardList.name}".`,
     });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (selectedItems.length === 0) {
       toast({
         title: "Erro",
@@ -117,30 +136,67 @@ export function BatchOperationForm({ operation, onClose }: BatchOperationFormPro
 
     // Verificar estoque apenas para saídas
     if (operation === 'saida') {
-      const insufficientStock = selectedItems.filter(item => {
-        const stockItem = mockItems.find(i => i.id === item.itemId);
-        return stockItem && stockItem.currentStock < item.quantity;
-      });
+      const insufficientStock = selectedItems.filter(item => 
+        item.currentStock < item.quantity
+      );
 
       if (insufficientStock.length > 0) {
+        const itemNames = insufficientStock.map(item => 
+          `${item.itemName} (disponível: ${item.currentStock}, necessário: ${item.quantity})`
+        ).join(', ');
+        
         toast({
           title: "Estoque insuficiente",
-          description: `Os seguintes itens não possuem estoque suficiente: ${insufficientStock.map(i => i.itemName).join(", ")}`,
+          description: `Os seguintes itens não possuem estoque suficiente: ${itemNames}`,
           variant: "destructive",
         });
         return;
       }
     }
 
-    const totalItems = selectedItems.length;
-    const totalQuantity = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+    setIsProcessing(true);
 
-    toast({
-      title: `${operation === 'entrada' ? 'Entrada' : 'Saída'} em lote realizada!`,
-      description: `${totalItems} tipos de itens processados (${totalQuantity.toFixed(1)} unidades total).`,
-    });
+    try {
+      let successCount = 0;
+      const totalItems = selectedItems.length;
 
-    onClose();
+      for (const item of selectedItems) {
+        const success = await addStockMovement(
+          item.itemId, 
+          item.quantity, 
+          operation,
+          `${operation === 'entrada' ? 'Entrada' : 'Saída'} em lote`
+        );
+        
+        if (success) {
+          successCount++;
+        }
+      }
+
+      if (successCount === totalItems) {
+        const totalQuantity = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+        toast({
+          title: `${operation === 'entrada' ? 'Entrada' : 'Saída'} em lote realizada!`,
+          description: `${totalItems} tipos de itens processados (${totalQuantity.toFixed(1)} unidades total).`,
+        });
+        onClose();
+      } else {
+        toast({
+          title: "Operação parcialmente concluída",
+          description: `${successCount} de ${totalItems} itens processados com sucesso.`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Erro na operação em lote:', error);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro durante a operação em lote.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const totalQuantity = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
@@ -182,7 +238,7 @@ export function BatchOperationForm({ operation, onClose }: BatchOperationFormPro
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map(category => (
+                      {allCategories.map(category => (
                         <SelectItem key={category} value={category}>
                           {category}
                         </SelectItem>
@@ -221,7 +277,7 @@ export function BatchOperationForm({ operation, onClose }: BatchOperationFormPro
                       <div className="flex-1">
                         <div className="font-medium">{item.name}</div>
                         <div className="text-sm text-muted-foreground">
-                          {item.category} • Estoque: {item.currentStock} {item.unit}
+                          {item.categories?.name || 'Sem categoria'} • Estoque: {item.current_stock} {item.units?.abbreviation || item.units?.name || 'un'}
                         </div>
                       </div>
                       {isSelected && (
@@ -233,7 +289,9 @@ export function BatchOperationForm({ operation, onClose }: BatchOperationFormPro
                             onChange={(e) => handleQuantityChange(item.id, e.target.value)}
                             className="w-20 text-center"
                           />
-                          <span className="text-sm text-muted-foreground">{item.unit}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {item.units?.abbreviation || item.units?.name || 'un'}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -258,7 +316,7 @@ export function BatchOperationForm({ operation, onClose }: BatchOperationFormPro
                       <SelectValue placeholder="Escolha uma lista padrão" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockStandardLists.map(list => (
+                      {standardLists.map(list => (
                         <SelectItem key={list.id} value={list.id}>
                           {list.name} ({list.items.length} itens)
                         </SelectItem>
@@ -301,6 +359,11 @@ export function BatchOperationForm({ operation, onClose }: BatchOperationFormPro
                   <div className="flex-1">
                     <span className="font-medium">{item.itemName}</span>
                     <span className="text-sm text-muted-foreground ml-2">({item.category})</span>
+                    {operation === 'saida' && (
+                      <div className="text-xs text-muted-foreground">
+                        Estoque atual: {item.currentStock} {item.unit}
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center space-x-2">
                     <Badge variant="secondary">
@@ -309,7 +372,12 @@ export function BatchOperationForm({ operation, onClose }: BatchOperationFormPro
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => handleItemToggle(mockItems.find(i => i.id === item.itemId)!, false)}
+                      onClick={() => {
+                        const stockItem = items.find(i => i.id === item.itemId);
+                        if (stockItem) {
+                          handleItemToggle(stockItem, false);
+                        }
+                      }}
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
@@ -322,11 +390,18 @@ export function BatchOperationForm({ operation, onClose }: BatchOperationFormPro
       )}
 
       <div className="flex justify-end space-x-3">
-        <Button variant="outline" onClick={onClose}>
+        <Button variant="outline" onClick={onClose} disabled={isProcessing}>
           Cancelar
         </Button>
-        <Button onClick={handleSubmit} disabled={selectedItems.length === 0}>
-          {operation === 'entrada' ? 'Processar Entrada' : 'Processar Saída'}
+        <Button onClick={handleSubmit} disabled={selectedItems.length === 0 || isProcessing}>
+          {isProcessing ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Processando...
+            </>
+          ) : (
+            `${operation === 'entrada' ? 'Processar Entrada' : 'Processar Saída'}`
+          )}
         </Button>
       </div>
     </div>
