@@ -16,7 +16,7 @@ export function WithdrawForm() {
   const { items, loading, addStockMovement } = useSupabaseItems();
   const [selectedItem, setSelectedItem] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [showBatchDialog, setShowBatchDialog] = useState(false);
 
@@ -24,7 +24,7 @@ export function WithdrawForm() {
   const categories = Array.from(new Set(items.map(item => item.categories?.name).filter(Boolean)));
 
   const filteredItems = items.filter(item => {
-    const matchesCategory = selectedCategory === "" || item.categories?.name === selectedCategory;
+    const matchesCategory = selectedCategory === "all" || item.categories?.name === selectedCategory;
     const matchesSearch = searchTerm === "" || item.name.toLowerCase().includes(searchTerm.toLowerCase());
     const hasStock = item.current_stock > 0;
     return matchesCategory && matchesSearch && hasStock;
@@ -65,7 +65,7 @@ export function WithdrawForm() {
       // Reset form
       setSelectedItem("");
       setQuantity("");
-      setSelectedCategory("");
+      setSelectedCategory("all");
       setSearchTerm("");
     }
   };
@@ -112,9 +112,9 @@ export function WithdrawForm() {
                       <SelectValue placeholder="Todas as categorias" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Todas as categorias</SelectItem>
+                      <SelectItem value="all">Todas as categorias</SelectItem>
                       {categories.map((category) => (
-                        <SelectItem key={category} value={category || ""}>
+                        <SelectItem key={category} value={category || "uncategorized"}>
                           {category}
                         </SelectItem>
                       ))}
