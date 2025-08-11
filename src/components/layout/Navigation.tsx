@@ -84,7 +84,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center space-x-4">
             <MobileSidebar activeTab={activeTab} onTabChange={onTabChange} />
-            <h1 className="hidden sm:block text-xl font-semibold">Sistema de Estoque</h1>
+            <h1 className="hidden sm:block text-xl font-semibold">AppStoq</h1>
           </div>
           
           {/* Desktop Navigation */}
