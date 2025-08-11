@@ -41,7 +41,7 @@ const Index = () => {
     isLowStock: item.current_stock < (item.minimum_stock || 10),
   }));
 
-  // Itens vencendo nos próximos 30 dias
+  // Itens vencendo nos próximos 30 dias (apenas para contagem)
   const expiringItems30 = mockStockItems.filter(item => 
     item.expiryDate && 
     new Date(item.expiryDate).getTime() - new Date().getTime() <= 30 * 24 * 60 * 60 * 1000 &&
@@ -159,30 +159,6 @@ const Index = () => {
         </Card>
       </div>
 
-      {/* Alertas de Vencimento - Mobile Optimized */}
-      {expiringItems30.length > 0 && (
-        <Card className="border-warning">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-sm md:text-base">
-              <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-warning-foreground" />
-              <span>Itens com Vencimento nos Próximos 30 Dias</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {expiringItems30.map((item) => (
-                <div key={item.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 bg-warning rounded-lg space-y-1 sm:space-y-0">
-                  <span className="font-medium text-sm">{item.name}</span>
-                  <Badge variant="outline" className="text-warning-foreground text-xs w-fit">
-                    {new Date(item.expiryDate).toLocaleDateString('pt-BR')}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Ranking e Gráficos - Mobile Optimized */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
         <div>
@@ -275,6 +251,31 @@ const Index = () => {
                   </Card>
                 );
               })}
+              {/* Seção específica para itens vencendo em 30 dias */}
+              {expiringItems30.length > 0 && (
+                <div className="mt-6">
+                  <Card className="border-warning">
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2 text-sm md:text-base">
+                        <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-warning-foreground" />
+                        <span>Itens com Vencimento nos Próximos 30 Dias</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {expiringItems30.map((item) => (
+                          <div key={item.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 bg-warning rounded-lg space-y-1 sm:space-y-0">
+                            <span className="font-medium text-sm">{item.name}</span>
+                            <Badge variant="outline" className="text-warning-foreground text-xs w-fit">
+                              {new Date(item.expiryDate).toLocaleDateString('pt-BR')}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
             </div>
           ) : (
             <Card>
