@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,12 +9,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useSupabaseCategories } from "@/hooks/useSupabaseCategories";
 import { useSupabaseUnits } from "@/hooks/useSupabaseUnits";
 import { useSupabaseItems } from "@/hooks/useSupabaseItems";
+import { AlertTriangle, Check } from "lucide-react";
 
 export function AddItemForm() {
   const { toast } = useToast();
   const { categories, loading: categoriesLoading } = useSupabaseCategories();
   const { units, loading: unitsLoading } = useSupabaseUnits();
-  const { addItem } = useSupabaseItems();
+  const { items, addItem } = useSupabaseItems();
   
   const [formData, setFormData] = useState({
     name: "",
@@ -26,6 +27,28 @@ export function AddItemForm() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Filtrar itens similares baseado no nome digitado
+  const similarItems = useMemo(() => {
+    if (!formData.name.trim() || formData.name.length < 2) return [];
+    
+    const searchTerm = formData.name.toLowerCase().trim();
+    return items
+      .filter(item => 
+        item.name.toLowerCase().includes(searchTerm) ||
+        searchTerm.includes(item.name.toLowerCase())
+      )
+      .slice(0, 5); // Limitar a 5 sugestões
+  }, [formData.name, items]);
+
+  // Verificar se o item já existe exatamente
+  const exactMatch = useMemo(() => {
+    if (!formData.name.trim()) return null;
+    return items.find(item => 
+      item.name.toLowerCase() === formData.name.toLowerCase().trim()
+    );
+  }, [formData.name, items]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +57,16 @@ export function AddItemForm() {
       toast({
         title: "Erro",
         description: "Por favor, preencha todos os campos obrigatórios.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Verificar se o item já existe
+    if (exactMatch) {
+      toast({
+        title: "Item já existe",
+        description: `O item "${formData.name}" já está cadastrado no estoque.`,
         variant: "destructive",
       });
       return;
@@ -65,6 +98,7 @@ export function AddItemForm() {
           minimum_stock: "",
           expiryDate: "",
         });
+        setShowSuggestions(false);
       }
     } catch (error) {
       console.error('Erro ao cadastrar item:', error);
@@ -76,6 +110,27 @@ export function AddItemForm() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleNameChange = (value: string) => {
+    setFormData(prev => ({ ...prev, name: value }));
+    setShowSuggestions(value.length >= 2);
+  };
+
+  const selectSuggestion = (item: any) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      name: item.name,
+      category_id: item.category_id,
+      unit_id: item.unit_id,
+    }));
+    setShowSuggestions(false);
+    
+    toast({
+      title: "Atenção",
+      description: `Item "${item.name}" já existe no estoque. Categoria e unidade foram preenchidas automaticamente.`,
+      variant: "destructive",
+    });
   };
 
   if (categoriesLoading || unitsLoading) {
@@ -96,15 +151,56 @@ export function AddItemForm() {
       
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
+          <div className="space-y-2 relative">
             <Label htmlFor="name">Nome do Item *</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              placeholder="Ex: Arroz branco"
-              disabled={isSubmitting}
-            />
+            <div className="relative">
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleNameChange(e.target.value)}
+                onFocus={() => setShowSuggestions(formData.name.length >= 2)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                placeholder="Ex: Arroz branco"
+                disabled={isSubmitting}
+                className={exactMatch ? "border-destructive" : ""}
+              />
+              
+              {exactMatch && (
+                <div className="absolute right-2 top-2.5">
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                </div>
+              )}
+            </div>
+
+            {/* Aviso de item duplicado */}
+            {exactMatch && (
+              <div className="flex items-center space-x-2 text-sm text-destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <span>Este item já existe no estoque</span>
+              </div>
+            )}
+
+            {/* Sugestões de itens similares */}
+            {showSuggestions && similarItems.length > 0 && !exactMatch && (
+              <div className="absolute z-10 w-full bg-background border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                <div className="p-2 text-xs text-muted-foreground border-b">
+                  Itens similares encontrados:
+                </div>
+                {similarItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => selectSuggestion(item)}
+                    className="w-full text-left px-3 py-2 hover:bg-muted/50 border-b last:border-b-0 text-sm"
+                  >
+                    <div className="font-medium">{item.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {item.categories?.name} • {item.units?.abbreviation || item.units?.name} • Estoque: {item.current_stock}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -188,7 +284,11 @@ export function AddItemForm() {
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={isSubmitting || !!exactMatch}
+          >
             {isSubmitting ? "Cadastrando..." : "Cadastrar Item"}
           </Button>
         </form>
