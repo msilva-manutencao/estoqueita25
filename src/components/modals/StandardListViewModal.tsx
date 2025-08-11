@@ -30,6 +30,7 @@ export function StandardListViewModal({
   const { toast } = useToast();
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editQuantity, setEditQuantity] = useState("");
+  const [updatingItems, setUpdatingItems] = useState<Set<string>>(new Set());
 
   if (!list) return null;
 
@@ -40,7 +41,7 @@ export function StandardListViewModal({
     setEditQuantity(currentQuantity.toString());
   };
 
-  const handleSaveEdit = (itemId: string) => {
+  const handleSaveEdit = async (itemId: string) => {
     const newQuantity = parseFloat(editQuantity);
     if (isNaN(newQuantity) || newQuantity <= 0) {
       toast({
@@ -52,7 +53,13 @@ export function StandardListViewModal({
     }
 
     if (onUpdateItem) {
-      onUpdateItem(list.id, itemId, newQuantity);
+      setUpdatingItems(prev => new Set(prev).add(itemId));
+      await onUpdateItem(list.id, itemId, newQuantity);
+      setUpdatingItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(itemId);
+        return newSet;
+      });
     }
     
     setEditingItemId(null);
@@ -64,10 +71,16 @@ export function StandardListViewModal({
     setEditQuantity("");
   };
 
-  const handleRemoveItem = (itemId: string, itemName: string) => {
+  const handleRemoveItem = async (itemId: string, itemName: string) => {
     if (window.confirm(`Tem certeza que deseja remover "${itemName}" desta lista?`)) {
       if (onRemoveItem) {
-        onRemoveItem(list.id, itemId);
+        setUpdatingItems(prev => new Set(prev).add(itemId));
+        await onRemoveItem(list.id, itemId);
+        setUpdatingItems(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(itemId);
+          return newSet;
+        });
       }
     }
   };
@@ -80,10 +93,16 @@ export function StandardListViewModal({
     }
   };
 
-  const adjustQuantity = (itemId: string, currentQuantity: number, increment: number) => {
+  const adjustQuantity = async (itemId: string, currentQuantity: number, increment: number) => {
     const newQuantity = Math.max(0.1, currentQuantity + increment);
     if (onUpdateItem) {
-      onUpdateItem(list.id, itemId, newQuantity);
+      setUpdatingItems(prev => new Set(prev).add(itemId));
+      await onUpdateItem(list.id, itemId, newQuantity);
+      setUpdatingItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(itemId);
+        return newSet;
+      });
     }
   };
 
@@ -156,13 +175,14 @@ export function StandardListViewModal({
             <div className="space-y-2">
               {list.items.map((item) => {
                 const isEditing = editingItemId === item.id;
+                const isUpdating = updatingItems.has(item.id);
                 const itemName = item.items?.name || 'Item não encontrado';
                 const unit = item.items?.units?.abbreviation || item.items?.units?.name || 'un';
                 const currentStock = item.items?.current_stock || 0;
                 const isOverStock = item.quantity > currentStock;
 
                 return (
-                  <Card key={item.id} className={`border-l-4 ${isOverStock ? 'border-l-destructive' : 'border-l-primary'}`}>
+                  <Card key={item.id} className={`border-l-4 ${isOverStock ? 'border-l-destructive' : 'border-l-primary'} ${isUpdating ? 'opacity-50' : ''}`}>
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
@@ -199,6 +219,7 @@ export function StandardListViewModal({
                                 size="sm"
                                 onClick={() => handleSaveEdit(item.id)}
                                 className="h-8 w-8 p-0"
+                                disabled={isUpdating}
                               >
                                 ✓
                               </Button>
@@ -219,7 +240,7 @@ export function StandardListViewModal({
                                   variant="outline"
                                   onClick={() => adjustQuantity(item.id, item.quantity, -0.5)}
                                   className="h-8 w-8 p-0"
-                                  disabled={item.quantity <= 0.1}
+                                  disabled={item.quantity <= 0.1 || isUpdating}
                                 >
                                   <Minus className="h-3 w-3" />
                                 </Button>
@@ -237,6 +258,7 @@ export function StandardListViewModal({
                                   variant="outline"
                                   onClick={() => adjustQuantity(item.id, item.quantity, 0.5)}
                                   className="h-8 w-8 p-0"
+                                  disabled={isUpdating}
                                 >
                                   <Plus className="h-3 w-3" />
                                 </Button>
@@ -247,6 +269,7 @@ export function StandardListViewModal({
                                 variant="outline"
                                 onClick={() => handleEditItem(item.id, item.quantity)}
                                 className="h-8 w-8 p-0"
+                                disabled={isUpdating}
                               >
                                 <Edit className="h-3 w-3" />
                               </Button>
@@ -256,6 +279,7 @@ export function StandardListViewModal({
                                 variant="destructive"
                                 onClick={() => handleRemoveItem(item.id, itemName)}
                                 className="h-8 w-8 p-0"
+                                disabled={isUpdating}
                               >
                                 <Trash2 className="h-3 w-3" />
                               </Button>
