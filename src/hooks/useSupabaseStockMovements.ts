@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -49,17 +50,17 @@ export function useSupabaseStockMovements() {
         .order('date', { ascending: false });
 
       if (filters?.startDate) {
-        // Garantir que a data inicial comece no início do dia
-        const startDate = new Date(filters.startDate);
-        startDate.setHours(0, 0, 0, 0);
+        // Converter para UTC mantendo a data local brasileira
+        const startDate = new Date(filters.startDate + 'T00:00:00-03:00');
         query = query.gte('date', startDate.toISOString());
+        console.log('Data início (UTC):', startDate.toISOString());
       }
 
       if (filters?.endDate) {
-        // Garantir que a data final termine no final do dia
-        const endDate = new Date(filters.endDate);
-        endDate.setHours(23, 59, 59, 999);
+        // Converter para UTC mantendo a data local brasileira
+        const endDate = new Date(filters.endDate + 'T23:59:59-03:00');
         query = query.lte('date', endDate.toISOString());
+        console.log('Data fim (UTC):', endDate.toISOString());
       }
 
       if (filters?.movementType && filters.movementType !== 'all') {

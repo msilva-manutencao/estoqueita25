@@ -12,6 +12,7 @@ import {
   Package,
   Menu
 } from "lucide-react";
+import { useState } from "react";
 
 interface MobileSidebarProps {
   activeTab: string;
@@ -19,6 +20,8 @@ interface MobileSidebarProps {
 }
 
 export function MobileSidebar({ activeTab, onTabChange }: MobileSidebarProps) {
+  const [open, setOpen] = useState(false);
+
   const navItems = [
     {
       id: "dashboard",
@@ -59,10 +62,11 @@ export function MobileSidebar({ activeTab, onTabChange }: MobileSidebarProps) {
 
   const handleItemClick = (itemId: string) => {
     onTabChange(itemId);
+    setOpen(false); // Fechar o sidebar após clicar
   };
 
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="md:hidden">
           <Menu className="h-5 w-5" />
