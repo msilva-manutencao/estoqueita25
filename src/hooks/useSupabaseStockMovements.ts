@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -50,11 +49,17 @@ export function useSupabaseStockMovements() {
         .order('date', { ascending: false });
 
       if (filters?.startDate) {
-        query = query.gte('date', filters.startDate);
+        // Garantir que a data inicial comece no início do dia
+        const startDate = new Date(filters.startDate);
+        startDate.setHours(0, 0, 0, 0);
+        query = query.gte('date', startDate.toISOString());
       }
 
       if (filters?.endDate) {
-        query = query.lte('date', filters.endDate);
+        // Garantir que a data final termine no final do dia
+        const endDate = new Date(filters.endDate);
+        endDate.setHours(23, 59, 59, 999);
+        query = query.lte('date', endDate.toISOString());
       }
 
       if (filters?.movementType && filters.movementType !== 'all') {
@@ -74,6 +79,7 @@ export function useSupabaseStockMovements() {
       }
 
       console.log('Movimentações carregadas:', data);
+      console.log('Filtros aplicados:', filters);
       
       // Fazemos um cast seguro dos dados, garantindo que movement_type seja do tipo correto
       const typedMovements = (data || []).map(movement => ({
