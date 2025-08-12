@@ -144,6 +144,93 @@ export function useSupabaseItems() {
     }
   };
 
+  const updateItem = async (itemId: string, itemData: {
+    name?: string;
+    category_id?: string;
+    unit_id?: string;
+    current_stock?: number;
+    minimum_stock?: number;
+    expiry_date?: string | null;
+  }) => {
+    try {
+      console.log('Atualizando item:', { itemId, itemData });
+      
+      const { error } = await supabase
+        .from('items')
+        .update(itemData)
+        .eq('id', itemId);
+
+      if (error) {
+        console.error('Erro ao atualizar item:', error);
+        toast({
+          title: "Erro",
+          description: `Não foi possível atualizar o item: ${error.message}`,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      console.log('Item atualizado com sucesso');
+      
+      toast({
+        title: "Sucesso",
+        description: "Item atualizado com sucesso",
+        variant: "default",
+      });
+
+      await fetchItems();
+      return true;
+    } catch (error) {
+      console.error('Erro na conexão:', error);
+      toast({
+        title: "Erro de Conexão",
+        description: "Verifique sua conexão com a internet",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  const deleteItem = async (itemId: string) => {
+    try {
+      console.log('Excluindo item:', itemId);
+      
+      const { error } = await supabase
+        .from('items')
+        .delete()
+        .eq('id', itemId);
+
+      if (error) {
+        console.error('Erro ao excluir item:', error);
+        toast({
+          title: "Erro",
+          description: `Não foi possível excluir o item: ${error.message}`,
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      console.log('Item excluído com sucesso');
+      
+      toast({
+        title: "Sucesso",
+        description: "Item excluído com sucesso",
+        variant: "default",
+      });
+
+      await fetchItems();
+      return true;
+    } catch (error) {
+      console.error('Erro na conexão:', error);
+      toast({
+        title: "Erro de Conexão",
+        description: "Verifique sua conexão com a internet",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchItems();
   }, []);
@@ -153,6 +240,8 @@ export function useSupabaseItems() {
     loading,
     fetchItems,
     addStockMovement,
-    addItem
+    addItem,
+    updateItem,
+    deleteItem
   };
 }

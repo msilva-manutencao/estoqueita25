@@ -1,10 +1,13 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { categories, units } from "@/data/mockData";
 import { useToast } from "@/hooks/use-toast";
+import { useSupabaseCategories } from "@/hooks/useSupabaseCategories";
+import { useSupabaseUnits } from "@/hooks/useSupabaseUnits";
+import { useSupabaseItems } from "@/hooks/useSupabaseItems";
 
 interface EditItemFormProps {
   item: any;
@@ -13,18 +16,26 @@ interface EditItemFormProps {
 }
 
 export function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
+  const { categories } = useSupabaseCategories();
+  const { units } = useSupabaseUnits();
+  const { updateItem } = useSupabaseItems();
+  const { toast } = useToast();
+
+  // Encontrar os IDs corretos baseado nos nomes
+  const currentCategory = categories.find(cat => cat.name === item.category);
+  const currentUnit = units.find(unit => unit.abbreviation === item.unit || unit.name === item.unit);
+
   const [formData, setFormData] = useState({
     id: item.id,
     name: item.name,
-    category: item.category,
-    unit: item.unit,
-    currentStock: item.currentStock,
-    expiryDate: item.expiryDate || ""
+    category_id: currentCategory?.id || "",
+    unit_id: currentUnit?.id || "",
+    current_stock: item.currentStock,
+    minimum_stock: item.minimum_stock || 10,
+    expiry_date: item.expiryDate || ""
   });
-  
-  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name.trim()) {
@@ -36,7 +47,7 @@ export function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
       return;
     }
 
-    if (formData.currentStock < 0) {
+    if (formData.current_stock < 0) {
       toast({
         title: "Erro", 
         description: "Quantidade não pode ser negativa",
@@ -45,12 +56,18 @@ export function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
       return;
     }
 
-    onSave(formData);
-    toast({
-      title: "Sucesso",
-      description: "Item atualizado com sucesso!",
-      variant: "default"
+    const success = await updateItem(formData.id, {
+      name: formData.name.trim(),
+      category_id: formData.category_id,
+      unit_id: formData.unit_id,
+      current_stock: formData.current_stock,
+      minimum_stock: formData.minimum_stock,
+      expiry_date: formData.expiry_date || null
     });
+
+    if (success) {
+      onSave(formData);
+    }
   };
 
   return (
@@ -69,14 +86,14 @@ export function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="category">Categoria</Label>
-          <Select value={formData.category} onValueChange={(value) => setFormData({...formData, category: value})}>
+          <Select value={formData.category_id} onValueChange={(value) => setFormData({...formData, category_id: value})}>
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue placeholder="Selecione a categoria" />
             </SelectTrigger>
             <SelectContent>
-              {categories.filter(cat => cat !== "Todos").map(category => (
-                <SelectItem key={category} value={category}>
-                  {category}
+              {categories.map(category => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -85,14 +102,14 @@ export function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
 
         <div className="space-y-2">
           <Label htmlFor="unit">Unidade</Label>
-          <Select value={formData.unit} onValueChange={(value) => setFormData({...formData, unit: value})}>
+          <Select value={formData.unit_id} onValueChange={(value) => setFormData({...formData, unit_id: value})}>
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue placeholder="Selecione a unidade" />
             </SelectTrigger>
             <SelectContent>
               {units.map(unit => (
-                <SelectItem key={unit} value={unit}>
-                  {unit}
+                <SelectItem key={unit.id} value={unit.id}>
+                  {unit.name} ({unit.abbreviation})
                 </SelectItem>
               ))}
             </SelectContent>
@@ -106,8 +123,8 @@ export function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
           <Input
             id="currentStock"
             type="number"
-            value={formData.currentStock}
-            onChange={(e) => setFormData({...formData, currentStock: Number(e.target.value)})}
+            value={formData.current_stock}
+            onChange={(e) => setFormData({...formData, current_stock: Number(e.target.value)})}
             min="0"
             step="0.1"
             required
@@ -115,14 +132,27 @@ export function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="expiryDate">Data de Validade</Label>
+          <Label htmlFor="minimumStock">Estoque Mínimo</Label>
           <Input
-            id="expiryDate"
-            type="date"
-            value={formData.expiryDate}
-            onChange={(e) => setFormData({...formData, expiryDate: e.target.value})}
+            id="minimumStock"
+            type="number"
+            value={formData.minimum_stock}
+            onChange={(e) => setFormData({...formData, minimum_stock: Number(e.target.value)})}
+            min="0"
+            step="0.1"
+            required
           />
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="expiryDate">Data de Validade</Label>
+        <Input
+          id="expiryDate"
+          type="date"
+          value={formData.expiry_date}
+          onChange={(e) => setFormData({...formData, expiry_date: e.target.value})}
+        />
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,7 @@ type SortField = 'name' | 'currentStock' | 'category' | 'status';
 type SortOrder = 'asc' | 'desc';
 
 export default function ItemsPage() {
-  const { items, loading } = useSupabaseItems();
+  const { items, loading, deleteItem } = useSupabaseItems();
   const { categories } = useSupabaseCategories();
   
   const [searchTerm, setSearchTerm] = useState("");
@@ -26,6 +25,7 @@ export default function ItemsPage() {
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   // Transform Supabase data to match the expected format
   const transformedItems = items.map(item => ({
@@ -33,6 +33,7 @@ export default function ItemsPage() {
     name: item.name,
     category: item.categories?.name || 'Sem categoria',
     currentStock: item.current_stock,
+    minimum_stock: item.minimum_stock,
     unit: item.units?.abbreviation || item.units?.name || 'un',
     expiryDate: item.expiry_date,
   }));
@@ -91,14 +92,21 @@ export default function ItemsPage() {
     }
   };
 
-  const handleDeleteItem = (itemId: string) => {
-    // TODO: Implement delete functionality with Supabase
-    console.log('Delete item:', itemId);
+  const handleDeleteItem = async (itemId: string) => {
+    const success = await deleteItem(itemId);
+    if (success) {
+      console.log('Item excluído com sucesso');
+    }
   };
 
   const handleEditItem = (updatedItem: any) => {
-    // TODO: Implement edit functionality with Supabase
     setEditingItem(null);
+    setIsEditDialogOpen(false);
+  };
+
+  const openEditDialog = (item: any) => {
+    setEditingItem(item);
+    setIsEditDialogOpen(true);
   };
 
   const getStatusBadge = (stock: number) => {
@@ -144,7 +152,6 @@ export default function ItemsPage() {
         </div>
       </div>
 
-      {/* Filters and Search */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -154,7 +161,6 @@ export default function ItemsPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Search */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Buscar Item</label>
               <div className="relative">
@@ -168,7 +174,6 @@ export default function ItemsPage() {
               </div>
             </div>
 
-            {/* Category Filter */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Categoria</label>
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -185,7 +190,6 @@ export default function ItemsPage() {
               </Select>
             </div>
 
-            {/* Stock Filter */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Quantidade</label>
               <Select value={stockFilter} onValueChange={setStockFilter}>
@@ -200,7 +204,6 @@ export default function ItemsPage() {
               </Select>
             </div>
 
-            {/* Clear Filters */}
             <div className="space-y-2">
               <label className="text-sm font-medium opacity-0">Clear</label>
               <Button 
@@ -221,7 +224,6 @@ export default function ItemsPage() {
         </CardContent>
       </Card>
 
-      {/* Mobile Cards View */}
       <div className="block md:hidden">
         <div className="space-y-4">
           {filteredAndSortedItems.map((item) => (
@@ -254,30 +256,14 @@ export default function ItemsPage() {
                 </div>
                 
                 <div className="flex justify-end space-x-2 pt-2 border-t">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => setEditingItem(item)}
-                      >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Editar
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Editar Item</DialogTitle>
-                      </DialogHeader>
-                      {editingItem && (
-                        <EditItemForm 
-                          item={editingItem}
-                          onSave={handleEditItem}
-                          onCancel={() => setEditingItem(null)}
-                        />
-                      )}
-                    </DialogContent>
-                  </Dialog>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => openEditDialog(item)}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Editar
+                  </Button>
 
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -312,7 +298,6 @@ export default function ItemsPage() {
         </div>
       </div>
 
-      {/* Desktop Table View */}
       <Card className="hidden md:block">
         <CardHeader>
           <CardTitle>Lista de Itens</CardTitle>
@@ -383,29 +368,13 @@ export default function ItemsPage() {
                     <TableCell>{getStatusBadge(item.currentStock)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end space-x-2">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => setEditingItem(item)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-md">
-                            <DialogHeader>
-                              <DialogTitle>Editar Item</DialogTitle>
-                            </DialogHeader>
-                            {editingItem && (
-                              <EditItemForm 
-                                item={editingItem}
-                                onSave={handleEditItem}
-                                onCancel={() => setEditingItem(null)}
-                              />
-                            )}
-                          </DialogContent>
-                        </Dialog>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => openEditDialog(item)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
 
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -448,6 +417,21 @@ export default function ItemsPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Item</DialogTitle>
+          </DialogHeader>
+          {editingItem && (
+            <EditItemForm 
+              item={editingItem}
+              onSave={handleEditItem}
+              onCancel={() => setIsEditDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
