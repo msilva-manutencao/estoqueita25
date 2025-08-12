@@ -22,30 +22,27 @@ export function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
-    id: "",
-    name: "",
+    id: item.id || "",
+    name: item.name || "",
     category_id: "",
     unit_id: "",
-    current_stock: 0,
-    minimum_stock: 10,
-    expiry_date: ""
+    current_stock: Number(item.current_stock) || 0,
+    minimum_stock: Number(item.minimum_stock) || 10,
+    expiry_date: item.expiry_date || ""
   });
 
-  // Inicializar dados do formulário quando o item ou as listas mudarem
+  // Inicializar dados do formulário
   useEffect(() => {
-    if (item && categories.length > 0 && units.length > 0) {
+    if (item) {
       console.log('Configurando formulário com item:', item);
-      console.log('Categorias disponíveis:', categories);
-      console.log('Unidades disponíveis:', units);
-
-      // Encontrar IDs corretos baseado nos dados do item
+      
       let categoryId = "";
       let unitId = "";
 
       // Se o item já tem category_id e unit_id, usar diretamente
       if (item.category_id) {
         categoryId = item.category_id;
-      } else if (item.categories?.name) {
+      } else if (item.categories?.name && categories.length > 0) {
         // Buscar por nome da categoria
         const foundCategory = categories.find(cat => cat.name === item.categories.name);
         categoryId = foundCategory?.id || "";
@@ -53,7 +50,7 @@ export function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
 
       if (item.unit_id) {
         unitId = item.unit_id;
-      } else if (item.units?.abbreviation || item.units?.name) {
+      } else if ((item.units?.abbreviation || item.units?.name) && units.length > 0) {
         // Buscar por abreviação ou nome da unidade
         const foundUnit = units.find(unit => 
           unit.abbreviation === item.units?.abbreviation || 
@@ -62,9 +59,8 @@ export function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
         unitId = foundUnit?.id || "";
       }
 
-      console.log('IDs encontrados:', { categoryId, unitId });
-
-      setFormData({
+      setFormData(prev => ({
+        ...prev,
         id: item.id,
         name: item.name,
         category_id: categoryId,
@@ -72,7 +68,7 @@ export function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
         current_stock: Number(item.current_stock),
         minimum_stock: Number(item.minimum_stock) || 10,
         expiry_date: item.expiry_date || ""
-      });
+      }));
     }
   }, [item, categories, units]);
 

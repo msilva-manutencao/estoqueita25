@@ -23,6 +23,8 @@ export function DateRangeFilter({
 }: DateRangeFilterProps) {
   const [startDateObj, setStartDateObj] = useState<Date | undefined>();
   const [endDateObj, setEndDateObj] = useState<Date | undefined>();
+  const [startPopoverOpen, setStartPopoverOpen] = useState(false);
+  const [endPopoverOpen, setEndPopoverOpen] = useState(false);
 
   // Configurar datas padrão (início e fim do mês corrente)
   useEffect(() => {
@@ -39,8 +41,8 @@ export function DateRangeFilter({
       setStartDateObj(firstDayOfMonth);
       setEndDateObj(lastDayOfMonth);
     } else {
-      if (startDate) setStartDateObj(new Date(startDate));
-      if (endDate) setEndDateObj(new Date(endDate));
+      if (startDate) setStartDateObj(new Date(startDate + 'T00:00:00'));
+      if (endDate) setEndDateObj(new Date(endDate + 'T00:00:00'));
     }
   }, [startDate, endDate, onStartDateChange, onEndDateChange]);
 
@@ -48,6 +50,7 @@ export function DateRangeFilter({
     if (date) {
       setStartDateObj(date);
       onStartDateChange(date.toISOString().split('T')[0]);
+      setStartPopoverOpen(false);
     }
   };
 
@@ -55,6 +58,7 @@ export function DateRangeFilter({
     if (date) {
       setEndDateObj(date);
       onEndDateChange(date.toISOString().split('T')[0]);
+      setEndPopoverOpen(false);
     }
   };
 
@@ -62,7 +66,7 @@ export function DateRangeFilter({
     <div className="grid grid-cols-2 gap-4">
       <div className="space-y-2">
         <label className="text-sm font-medium">Data Início</label>
-        <Popover>
+        <Popover open={startPopoverOpen} onOpenChange={setStartPopoverOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
@@ -93,7 +97,7 @@ export function DateRangeFilter({
 
       <div className="space-y-2">
         <label className="text-sm font-medium">Data Fim</label>
-        <Popover>
+        <Popover open={endPopoverOpen} onOpenChange={setEndPopoverOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
