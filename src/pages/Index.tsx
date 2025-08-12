@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertTriangle, Package, TrendingUp, TrendingDown, Plus, Loader2, AlertCircle } from "lucide-react";
 import { BatchOperationForm } from "@/components/forms/BatchOperationForm";
 import { useSupabaseItems } from "@/hooks/useSupabaseItems";
-import { ReportsView } from "@/components/reports/ReportsView";
+import ReportsView from "@/components/reports/ReportsView";
 import ItemsPage from "./ItemsPage";
 
 const Index = () => {

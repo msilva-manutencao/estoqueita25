@@ -56,6 +56,29 @@ export default function ReportsView() {
       <Badge variant="destructive">Saída</Badge>;
   };
 
+  // Format movements data for export
+  const formatMovementsForExport = () => {
+    return movements.map(movement => [
+      new Date(movement.date).toLocaleDateString('pt-BR'),
+      movement.items?.name || 'Item não encontrado',
+      movement.items?.categories?.name || 'Sem categoria',
+      movement.movement_type === 'entrada' ? 'Entrada' : 'Saída',
+      movement.quantity.toString(),
+      movement.items?.units?.abbreviation || movement.items?.units?.name || 'un',
+      movement.description || 'Sem descrição'
+    ]);
+  };
+
+  const exportHeaders = [
+    'Data',
+    'Item',
+    'Categoria',
+    'Tipo',
+    'Quantidade',
+    'Unidade',
+    'Descrição'
+  ];
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -122,7 +145,12 @@ export default function ReportsView() {
             <Button variant="outline" onClick={clearFilters}>
               Limpar Filtros
             </Button>
-            <ExportButton data={movements} filename="relatorio-movimentacoes" />
+            <ExportButton 
+              data={formatMovementsForExport()} 
+              headers={exportHeaders}
+              filename="relatorio-movimentacoes" 
+              title="Relatório de Movimentações"
+            />
           </div>
         </CardContent>
       </Card>
