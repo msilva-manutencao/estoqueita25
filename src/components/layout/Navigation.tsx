@@ -17,6 +17,7 @@ const navItems = [
   { icon: Package, label: "Retirar Item", value: "withdraw" },
   { icon: List, label: "Itens", value: "items" },
   { icon: Tag, label: "Categorias", value: "categories" },
+  { icon: List, label: "Unidades", value: "units" },
   { icon: List, label: "Listas Padrão", value: "standard-lists" },
   { icon: FileText, label: "Alertas", value: "alerts" },
   { icon: FileText, label: "Relatórios", value: "reports" },
@@ -30,13 +31,12 @@ interface NavigationProps {
 export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   return (
     <div className="border-b md:border-b-0 md:border-r bg-card">
-      {/* Mobile Navigation */}
-      <div className="md:hidden">
+      {/* Mobile Navigation - Floating Menu Button */}
+      <div className="md:hidden fixed top-4 left-4 z-50">
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="sm" className="m-4">
-              <Menu className="h-4 w-4 mr-2" />
-              Menu
+            <Button variant="outline" size="sm" className="shadow-lg bg-card">
+              <Menu className="h-4 w-4" />
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0">

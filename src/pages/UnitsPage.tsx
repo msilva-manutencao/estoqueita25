@@ -5,47 +5,47 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Edit, Trash2, Tag } from "lucide-react";
-import { useSupabaseCategoriesCRUD } from "@/hooks/useSupabaseCategoriesCRUD";
-import { CategoryForm } from "@/components/categories/CategoryForm";
-import { SupabaseCategory } from "@/hooks/useSupabaseCategories";
+import { Plus, Edit, Trash2, Package } from "lucide-react";
+import { useSupabaseUnitsCRUD } from "@/hooks/useSupabaseUnitsCRUD";
+import { UnitForm } from "@/components/units/UnitForm";
+import { SupabaseUnit } from "@/hooks/useSupabaseUnits";
 
-export default function CategoriesPage() {
-  const { categories, loading, deleteCategory, operationLoading } = useSupabaseCategoriesCRUD();
+export default function UnitsPage() {
+  const { units, loading, deleteUnit, operationLoading } = useSupabaseUnitsCRUD();
   
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<SupabaseCategory | undefined>();
-  const [deletingCategory, setDeletingCategory] = useState<SupabaseCategory | undefined>();
+  const [editingUnit, setEditingUnit] = useState<SupabaseUnit | undefined>();
+  const [deletingUnit, setDeletingUnit] = useState<SupabaseUnit | undefined>();
 
-  const handleEdit = (category: SupabaseCategory) => {
-    setEditingCategory(category);
+  const handleEdit = (unit: SupabaseUnit) => {
+    setEditingUnit(unit);
     setIsFormOpen(true);
   };
 
   const handleDelete = async () => {
-    if (deletingCategory) {
-      const success = await deleteCategory(deletingCategory.id);
+    if (deletingUnit) {
+      const success = await deleteUnit(deletingUnit.id);
       if (success) {
-        setDeletingCategory(undefined);
+        setDeletingUnit(undefined);
       }
     }
   };
 
   const handleFormSuccess = () => {
     setIsFormOpen(false);
-    setEditingCategory(undefined);
+    setEditingUnit(undefined);
   };
 
   const handleFormCancel = () => {
     setIsFormOpen(false);
-    setEditingCategory(undefined);
+    setEditingUnit(undefined);
   };
 
   if (loading) {
     return (
       <div className="space-y-6 pt-16 md:pt-6">
         <div className="text-center py-8">
-          <div className="text-lg">Carregando categorias...</div>
+          <div className="text-lg">Carregando unidades...</div>
         </div>
       </div>
     );
@@ -56,15 +56,15 @@ export default function CategoriesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold">Categorias</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">Unidades</h1>
           <p className="text-muted-foreground text-sm md:text-base">
-            Gerencie as categorias dos seus itens de estoque
+            Gerencie as unidades de medida dos seus itens
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Tag className="h-6 w-6 md:h-8 md:w-8 text-primary" />
-          <span className="text-xl md:text-2xl font-bold">{categories.length}</span>
-          <span className="text-muted-foreground text-sm md:text-base">categorias</span>
+          <Package className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+          <span className="text-xl md:text-2xl font-bold">{units.length}</span>
+          <span className="text-muted-foreground text-sm md:text-base">unidades</span>
         </div>
       </div>
 
@@ -72,47 +72,46 @@ export default function CategoriesPage() {
       <div className="flex justify-end">
         <Button onClick={() => setIsFormOpen(true)} size="sm" className="md:text-base">
           <Plus className="h-4 w-4 mr-2" />
-          Nova Categoria
+          Nova Unidade
         </Button>
       </div>
 
-      {/* Categories - Mobile Cards / Desktop Table */}
+      {/* Units - Mobile Cards / Desktop Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg md:text-xl">Lista de Categorias</CardTitle>
+          <CardTitle className="text-lg md:text-xl">Lista de Unidades</CardTitle>
         </CardHeader>
         <CardContent>
           {/* Mobile Card Layout */}
           <div className="md:hidden space-y-3">
-            {categories.map((category) => (
-              <Card key={category.id} className="border border-muted">
+            {units.map((unit) => (
+              <Card key={unit.id} className="border border-muted">
                 <CardContent className="pt-4">
                   <div className="space-y-2">
                     <div className="flex justify-between items-start">
-                      <h3 className="font-semibold text-base">{category.name}</h3>
+                      <div>
+                        <h3 className="font-semibold text-base">{unit.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Abreviação: <span className="font-medium">{unit.abbreviation}</span>
+                        </p>
+                      </div>
                       <div className="flex space-x-1">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleEdit(category)}
+                          onClick={() => handleEdit(unit)}
                         >
                           <Edit className="h-3 w-3" />
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setDeletingCategory(category)}
+                          onClick={() => setDeletingUnit(unit)}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {category.description || 'Sem descrição'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Criado em: {new Date(category.created_at).toLocaleDateString('pt-BR')}
-                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -125,32 +124,30 @@ export default function CategoriesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Data de Criação</TableHead>
+                  <TableHead>Abreviação</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {categories.map((category) => (
-                  <TableRow key={category.id}>
-                    <TableCell className="font-medium">{category.name}</TableCell>
-                    <TableCell>{category.description || 'Sem descrição'}</TableCell>
-                    <TableCell>
-                      {new Date(category.created_at).toLocaleDateString('pt-BR')}
+                {units.map((unit) => (
+                  <TableRow key={unit.id}>
+                    <TableCell className="font-medium">{unit.name}</TableCell>
+                    <TableCell className="font-mono bg-muted/50 rounded px-2 py-1 text-sm w-fit">
+                      {unit.abbreviation}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleEdit(category)}
+                          onClick={() => handleEdit(unit)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setDeletingCategory(category)}
+                          onClick={() => setDeletingUnit(unit)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -162,11 +159,11 @@ export default function CategoriesPage() {
             </Table>
           </div>
           
-          {categories.length === 0 && (
+          {units.length === 0 && (
             <div className="text-center py-8">
-              <Tag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">
-                Nenhuma categoria cadastrada. Clique em "Nova Categoria" para começar.
+                Nenhuma unidade cadastrada. Clique em "Nova Unidade" para começar.
               </p>
             </div>
           )}
@@ -178,11 +175,11 @@ export default function CategoriesPage() {
         <DialogContent className="mx-2 max-w-[calc(100vw-1rem)] md:mx-auto md:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
+              {editingUnit ? 'Editar Unidade' : 'Nova Unidade'}
             </DialogTitle>
           </DialogHeader>
-          <CategoryForm
-            category={editingCategory}
+          <UnitForm
+            unit={editingUnit}
             onSuccess={handleFormSuccess}
             onCancel={handleFormCancel}
           />
@@ -190,12 +187,12 @@ export default function CategoriesPage() {
       </Dialog>
 
       {/* Delete Confirmation */}
-      <AlertDialog open={!!deletingCategory} onOpenChange={() => setDeletingCategory(undefined)}>
+      <AlertDialog open={!!deletingUnit} onOpenChange={() => setDeletingUnit(undefined)}>
         <AlertDialogContent className="mx-2 max-w-[calc(100vw-1rem)] md:mx-auto md:max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir a categoria "{deletingCategory?.name}"?
+              Tem certeza que deseja excluir a unidade "{deletingUnit?.name}"?
               Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>

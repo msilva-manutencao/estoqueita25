@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Navigation } from "@/components/layout/Navigation";
 import { StockCard } from "@/components/dashboard/StockCard";
@@ -19,6 +18,7 @@ import { useSupabaseItems } from "@/hooks/useSupabaseItems";
 import ReportsView from "@/components/reports/ReportsView";
 import ItemsPage from "./ItemsPage";
 import CategoriesPage from "./CategoriesPage";
+import UnitsPage from "./UnitsPage";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -304,6 +304,8 @@ const Index = () => {
         return <ItemsPage />;
       case "categories":
         return <CategoriesPage />;
+      case "units":
+        return <UnitsPage />;
       case "standard-lists":
         return <StandardListsManager />;
       case "alerts":
