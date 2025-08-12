@@ -18,6 +18,7 @@ import { BatchOperationForm } from "@/components/forms/BatchOperationForm";
 import { useSupabaseItems } from "@/hooks/useSupabaseItems";
 import ReportsView from "@/components/reports/ReportsView";
 import ItemsPage from "./ItemsPage";
+import CategoriesPage from "./CategoriesPage";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -301,6 +302,8 @@ const Index = () => {
         return <WithdrawForm />;
       case "items":
         return <ItemsPage />;
+      case "categories":
+        return <CategoriesPage />;
       case "standard-lists":
         return <StandardListsManager />;
       case "alerts":
@@ -314,13 +317,15 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
-      
-      <main className="container mx-auto px-3 py-4 md:px-6 md:py-8">
-        <div className="max-w-7xl mx-auto">
-          {renderContent()}
-        </div>
-      </main>
+      <div className="flex">
+        <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
+        
+        <main className="flex-1 container mx-auto px-3 py-4 md:px-6 md:py-8">
+          <div className="max-w-7xl mx-auto">
+            {renderContent()}
+          </div>
+        </main>
+      </div>
 
       <Dialog open={showBatchDialog} onOpenChange={setShowBatchDialog}>
         <DialogContent className="mx-2 max-w-[calc(100vw-1rem)] md:mx-auto md:max-w-6xl max-h-[90vh] overflow-y-auto">
