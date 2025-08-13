@@ -1,5 +1,5 @@
 
-import { BarChart3, Package, FileText, Tag, List, Menu } from "lucide-react";
+import { BarChart3, Package, FileText, Tag, List, Menu, ArrowUp, ArrowDown, Download } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -16,12 +16,15 @@ const navItems = [
   { icon: BarChart3, label: "Dashboard", value: "dashboard" },
   { icon: Package, label: "Adicionar Item", value: "add-item" },
   { icon: Package, label: "Retirar Item", value: "withdraw" },
+  { icon: ArrowUp, label: "Entrada em Lote", value: "batch-entry" },
+  { icon: ArrowDown, label: "Saída em Lote", value: "batch-exit" },
   { icon: List, label: "Itens", value: "items" },
   { icon: Tag, label: "Categorias", value: "categories" },
   { icon: List, label: "Unidades", value: "units" },
   { icon: List, label: "Listas Padrão", value: "standard-lists" },
   { icon: FileText, label: "Alertas", value: "alerts" },
   { icon: FileText, label: "Relatórios", value: "reports" },
+  { icon: Download, label: "Exportar", value: "export" },
 ];
 
 interface NavigationProps {
@@ -34,7 +37,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
 
   const handleTabClick = (tab: string) => {
     onTabChange(tab);
-    setMobileMenuOpen(false); // Fechar o menu ao clicar
+    setMobileMenuOpen(false);
   };
 
   return (

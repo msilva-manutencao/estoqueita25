@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BarChart3, TrendingUp, TrendingDown, Package, Calendar, FileText, Filter } from "lucide-react";
+import { BarChart3, TrendingUp, TrendingDown, Package, Filter } from "lucide-react";
 import { useSupabaseStockMovements } from "@/hooks/useSupabaseStockMovements";
 import { DateRangeFilter } from "./DateRangeFilter";
 import { ExportButton } from "./ExportButton";
@@ -92,36 +92,31 @@ export default function ReportsView() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Relatórios</h1>
-          <p className="text-muted-foreground">
-            Análise detalhada das movimentações de estoque
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <FileText className="h-8 w-8 text-primary" />
-          <span className="text-2xl font-bold">{movements.length}</span>
-          <span className="text-muted-foreground">movimentações</span>
-        </div>
+      <div className="text-center md:text-left">
+        <h1 className="text-3xl font-bold text-center">Relatórios</h1>
+        <p className="text-muted-foreground text-center md:text-left">
+          Análise detalhada das movimentações de estoque
+        </p>
       </div>
 
       {/* Filtros */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
+          <CardTitle className="flex items-center justify-center md:justify-start space-x-2">
             <Filter className="h-5 w-5" />
             <span>Filtros</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <DateRangeFilter
-              startDate={filters.startDate}
-              endDate={filters.endDate}
-              onStartDateChange={(date) => handleFilterChange('startDate', date)}
-              onEndDateChange={(date) => handleFilterChange('endDate', date)}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-1">
+              <DateRangeFilter
+                startDate={filters.startDate}
+                endDate={filters.endDate}
+                onStartDateChange={(date) => handleFilterChange('startDate', date)}
+                onEndDateChange={(date) => handleFilterChange('endDate', date)}
+              />
+            </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Tipo de Movimentação</label>
@@ -141,8 +136,8 @@ export default function ReportsView() {
             </div>
           </div>
 
-          <div className="flex justify-between items-center mt-4">
-            <Button variant="outline" onClick={clearFilters}>
+          <div className="flex flex-col md:flex-row justify-between items-center mt-4 gap-4">
+            <Button variant="outline" onClick={clearFilters} className="w-full md:w-auto">
               Limpar Filtros
             </Button>
             <ExportButton 
@@ -150,21 +145,22 @@ export default function ReportsView() {
               headers={exportHeaders}
               filename="relatorio-movimentacoes" 
               title="Relatório de Movimentações"
+              className="w-full md:w-auto"
             />
           </div>
         </CardContent>
       </Card>
 
       {/* Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Movimentações</CardTitle>
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summary.totalMovements}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold text-center">{summary.totalMovements}</div>
+            <p className="text-xs text-muted-foreground text-center">
               No período selecionado
             </p>
           </CardContent>
@@ -176,8 +172,8 @@ export default function ReportsView() {
             <TrendingUp className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{summary.entries.count}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold text-green-600 text-center">{summary.entries.count}</div>
+            <p className="text-xs text-muted-foreground text-center">
               Quantidade total: {summary.entries.quantity}
             </p>
           </CardContent>
@@ -189,8 +185,8 @@ export default function ReportsView() {
             <TrendingDown className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{summary.exits.count}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold text-red-600 text-center">{summary.exits.count}</div>
+            <p className="text-xs text-muted-foreground text-center">
               Quantidade total: {summary.exits.quantity}
             </p>
           </CardContent>
@@ -200,26 +196,26 @@ export default function ReportsView() {
       {/* Tabela de Movimentações */}
       <Card>
         <CardHeader>
-          <CardTitle>Histórico de Movimentações</CardTitle>
+          <CardTitle className="text-center md:text-left">Histórico de Movimentações</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Item</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Quantidade</TableHead>
-                  <TableHead>Unidade</TableHead>
-                  <TableHead>Descrição</TableHead>
+                  <TableHead className="min-w-[100px]">Data</TableHead>
+                  <TableHead className="min-w-[150px]">Item</TableHead>
+                  <TableHead className="min-w-[120px]">Categoria</TableHead>
+                  <TableHead className="min-w-[100px]">Tipo</TableHead>
+                  <TableHead className="min-w-[100px]">Quantidade</TableHead>
+                  <TableHead className="min-w-[80px]">Unidade</TableHead>
+                  <TableHead className="min-w-[150px]">Descrição</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {movements.map((movement) => (
                   <TableRow key={movement.id}>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                       {new Date(movement.date).toLocaleDateString('pt-BR')}
                     </TableCell>
                     <TableCell className="font-medium">
@@ -239,7 +235,7 @@ export default function ReportsView() {
                     <TableCell>
                       {movement.items?.units?.abbreviation || movement.items?.units?.name || 'un'}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="max-w-[200px] truncate">
                       {movement.description || 'Sem descrição'}
                     </TableCell>
                   </TableRow>
