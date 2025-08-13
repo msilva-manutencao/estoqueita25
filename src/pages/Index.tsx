@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Navigation } from "@/components/layout/Navigation";
 import { AddItemForm } from "@/components/forms/AddItemForm";
@@ -10,6 +11,7 @@ import UnitsPage from "./UnitsPage";
 import ReportsView from "@/components/reports/ReportsView";
 import { ExportView } from "@/components/reports/ExportView";
 import { StandardListsView } from "@/components/standard-lists/StandardListsView";
+import { StandardListsManager } from "@/components/standard-lists/StandardListsManager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSupabaseItems } from "@/hooks/useSupabaseItems";
@@ -46,36 +48,7 @@ const Index = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <StockCard
-                title="Total de Itens"
-                value={totalItems}
-                icon={Package}
-                description="Produtos cadastrados"
-              />
-              <StockCard
-                title="Estoque Total"
-                value={totalStock}
-                icon={TrendingUp}
-                description="Unidades em estoque"
-              />
-              <StockCard
-                title="Estoque Baixo"
-                value={lowStockItems.length}
-                icon={AlertTriangle}
-                description="Itens com estoque baixo"
-                variant="warning"
-                onClick={() => {/* handled in StockCard */}}
-              />
-              <StockCard
-                title="Vencimento 30 dias"
-                value={expiringItems.length}
-                icon={Clock}
-                description="Itens próximos ao vencimento"
-                variant="danger"
-                onClick={() => {/* handled in StockCard */}}
-              />
-            </div>
+            <StockCard items={items} />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <StockChart />
@@ -104,12 +77,18 @@ const Index = () => {
       case "batch-entry":
         return (
           <div>
+            <div className="text-center mb-6">
+              <h1 className="text-3xl font-bold">Entrada em Lote</h1>
+            </div>
             <BatchEntryForm />
           </div>
         );
       case "batch-exit":
         return (
           <div>
+            <div className="text-center mb-6">
+              <h1 className="text-3xl font-bold">Saída em Lote</h1>
+            </div>
             <BatchExitForm />
           </div>
         );
@@ -125,7 +104,7 @@ const Index = () => {
             <div className="text-center mb-6">
               <h1 className="text-3xl font-bold">Listas Padrão</h1>
             </div>
-            <StandardListsView />
+            <StandardListsManager />
           </div>
         );
       case "alerts":
@@ -208,9 +187,23 @@ const Index = () => {
           </div>
         );
       case "reports":
-        return <ReportsView />;
+        return (
+          <div>
+            <div className="text-center mb-6">
+              <h1 className="text-3xl font-bold">Relatórios</h1>
+            </div>
+            <ReportsView />
+          </div>
+        );
       case "export":
-        return <ExportView />;
+        return (
+          <div>
+            <div className="text-center mb-6">
+              <h1 className="text-3xl font-bold">Exportar</h1>
+            </div>
+            <ExportView />
+          </div>
+        );
       default:
         return (
           <div className="text-center">
