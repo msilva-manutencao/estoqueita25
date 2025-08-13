@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MobileSidebar } from "./MobileSidebar";
+import { CompanySelector } from "@/components/companies/CompanySelector";
+import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import {
   LayoutDashboard,
   Plus,
@@ -15,7 +17,9 @@ import {
   List,
   Tag,
   Ruler,
-  Users
+  Users,
+  Building2,
+  Crown
 } from "lucide-react";
 
 interface NavigationProps {
@@ -25,8 +29,9 @@ interface NavigationProps {
 
 export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const { isSuperAdmin } = useSuperAdmin();
 
-  const menuItems = [
+  const baseMenuItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "add-item", label: "Adicionar Item", icon: Plus },
     { id: "withdraw", label: "Retirar Item", icon: Minus },
@@ -36,10 +41,17 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
     { id: "categories", label: "Categorias", icon: Tag },
     { id: "units", label: "Unidades", icon: Ruler },
     { id: "standard-lists", label: "Listas Padrão", icon: List },
+    { id: "companies", label: "Empresas", icon: Building2 },
     { id: "users", label: "Usuários", icon: Users },
     { id: "reports", label: "Relatórios", icon: FileText },
     { id: "export", label: "Exportar", icon: Download },
   ];
+
+  const adminMenuItems = [
+    { id: "admin", label: "Super Admin", icon: Crown },
+  ];
+
+  const menuItems = isSuperAdmin ? [...baseMenuItems, ...adminMenuItems] : baseMenuItems;
 
   return (
     <>
@@ -71,6 +83,11 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
               {collapsed ? "→" : "←"}
             </Button>
           </div>
+          {!collapsed && (
+            <div className="mt-4">
+              <CompanySelector />
+            </div>
+          )}
         </div>
 
         <nav className="p-2 space-y-1">

@@ -13,12 +13,16 @@ import { StandardListsManager } from "@/components/standard-lists/StandardListsM
 import { ItemsManager } from "@/components/items/ItemsManager";
 import { UnitsManager } from "@/components/units/UnitsManager";
 import { CategoriesManager } from "@/components/categories/CategoriesManager";
+import { CompaniesManager } from "@/components/companies/CompaniesManager";
+import { SuperAdminPanel } from "@/components/admin/SuperAdminPanel";
+import { NoCompanySelected } from "@/components/companies/NoCompanySelected";
 import { AuthDebug } from "@/components/debug/AuthDebug";
 import { AuthPage } from "@/components/auth/AuthPage";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSupabaseItems } from "@/hooks/useSupabaseItems";
 import { useAuth } from "@/hooks/useAuth";
+import { useCurrentCompany } from "@/hooks/useCurrentCompany";
 import { Package, TrendingUp, AlertTriangle, Clock, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import React from "react";
@@ -27,6 +31,7 @@ export default function Index() {
   const [activeView, setActiveView] = useState("dashboard");
   const { items } = useSupabaseItems();
   const { user, loading, signOut } = useAuth();
+  const { currentCompany } = useCurrentCompany();
 
   if (loading) {
     return (
@@ -52,6 +57,12 @@ export default function Index() {
   }).length;
 
   const renderContent = () => {
+    // Mostrar tela de seleção de empresa se não houver empresa selecionada
+    // (exceto para as páginas de empresas e admin)
+    if (!currentCompany && activeView !== 'companies' && activeView !== 'admin') {
+      return <NoCompanySelected onNavigateToCompanies={() => setActiveView('companies')} />;
+    }
+
     switch (activeView) {
       case "dashboard":
         return (
@@ -148,6 +159,24 @@ export default function Index() {
               <h1 className="text-3xl font-bold">Gerenciar Listas</h1>
             </div>
             <StandardListsManager />
+          </div>
+        );
+      case "companies":
+        return (
+          <div>
+            <div className="text-center mb-6">
+              <h1 className="text-3xl font-bold">Gerenciar Empresas</h1>
+            </div>
+            <CompaniesManager />
+          </div>
+        );
+      case "admin":
+        return (
+          <div>
+            <div className="text-center mb-6">
+              <h1 className="text-3xl font-bold">Painel Super Admin</h1>
+            </div>
+            <SuperAdminPanel />
           </div>
         );
       case "reports":
