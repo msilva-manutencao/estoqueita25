@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Navigation } from "@/components/layout/Navigation";
 import { AddItemForm } from "@/components/forms/AddItemForm";
@@ -18,6 +17,7 @@ import { useSupabaseItems } from "@/hooks/useSupabaseItems";
 import { useAuth } from "@/hooks/useAuth";
 import { Package, TrendingUp, AlertTriangle, Clock, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import React from "react";
 
 export default function Index() {
   const [activeView, setActiveView] = useState("dashboard");
@@ -122,6 +122,18 @@ export default function Index() {
         return <ReportsView />;
       case "export":
         return <ExportView />;
+      case "users":
+        return (
+          <div>
+            <div className="text-center mb-6">
+              <h1 className="text-3xl font-bold">Gerenciar Usuários</h1>
+            </div>
+            <div>
+              {/* Dynamic import to avoid loading issues */}
+              {React.lazy(() => import('@/pages/UsersPage')).then(module => React.createElement(module.default))}
+            </div>
+          </div>
+        );
       default:
         return (
           <div className="text-center">

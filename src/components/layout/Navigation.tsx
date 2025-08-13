@@ -1,31 +1,22 @@
 
-import { BarChart3, Package, FileText, Tag, List, Menu, ArrowUp, ArrowDown, Download } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
 import { useState } from "react";
-
-const navItems = [
-  { icon: BarChart3, label: "Dashboard", value: "dashboard" },
-  { icon: Package, label: "Adicionar Item", value: "add-item" },
-  { icon: Package, label: "Retirar Item", value: "withdraw" },
-  { icon: ArrowUp, label: "Entrada em Lote", value: "batch-entry" },
-  { icon: ArrowDown, label: "Saída em Lote", value: "batch-exit" },
-  { icon: List, label: "Itens", value: "items" },
-  { icon: Tag, label: "Categorias", value: "categories" },
-  { icon: List, label: "Unidades", value: "units" },
-  { icon: List, label: "Listas Padrão", value: "standard-lists" },
-  { icon: FileText, label: "Alertas", value: "alerts" },
-  { icon: FileText, label: "Relatórios", value: "reports" },
-  { icon: Download, label: "Exportar", value: "export" },
-];
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { MobileSidebar } from "./MobileSidebar";
+import {
+  LayoutDashboard,
+  Plus,
+  Minus,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Package,
+  FileText,
+  Download,
+  List,
+  Tag,
+  Ruler,
+  Users
+} from "lucide-react";
 
 interface NavigationProps {
   activeTab: string;
@@ -33,72 +24,72 @@ interface NavigationProps {
 }
 
 export function Navigation({ activeTab, onTabChange }: NavigationProps) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
-  const handleTabClick = (tab: string) => {
-    onTabChange(tab);
-    setMobileMenuOpen(false);
-  };
+  const menuItems = [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "add-item", label: "Adicionar Item", icon: Plus },
+    { id: "withdraw", label: "Retirar Item", icon: Minus },
+    { id: "batch-entry", label: "Entrada em Lote", icon: ArrowDownToLine },
+    { id: "batch-exit", label: "Saída em Lote", icon: ArrowUpFromLine },
+    { id: "items", label: "Gerenciar Itens", icon: Package },
+    { id: "categories", label: "Categorias", icon: Tag },
+    { id: "units", label: "Unidades", icon: Ruler },
+    { id: "standard-lists", label: "Listas Padrão", icon: List },
+    { id: "users", label: "Usuários", icon: Users },
+    { id: "reports", label: "Relatórios", icon: FileText },
+    { id: "export", label: "Exportar", icon: Download },
+  ];
 
   return (
-    <div className="border-b md:border-b-0 md:border-r bg-card">
-      {/* Mobile Navigation - Floating Menu Button */}
-      <div className="md:hidden fixed top-4 left-4 z-50">
-        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="sm" className="shadow-lg bg-card">
-              <Menu className="h-4 w-4" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="p-0">
-            <SheetHeader className="pl-6 pr-8 pt-6">
-              <SheetTitle>Menu</SheetTitle>
-              <SheetDescription>
-                Navegue pelas funcionalidades do sistema.
-              </SheetDescription>
-            </SheetHeader>
-            <Separator />
-            <div className="flex flex-col gap-0.5 p-4">
-              {navItems.map((item) => (
-                <button
-                  key={item.label}
-                  onClick={() => handleTabClick(item.value)}
-                  className={`flex items-center gap-2 rounded-md p-2 text-sm font-semibold text-left hover:bg-secondary ${
-                    activeTab === item.value ? 'bg-secondary' : ''
-                  }`}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </SheetContent>
-        </Sheet>
+    <>
+      {/* Mobile sidebar */}
+      <div className="lg:hidden">
+        <MobileSidebar
+          activeTab={activeTab}
+          onTabChange={onTabChange}
+          menuItems={menuItems}
+        />
       </div>
 
-      {/* Desktop Navigation */}
-      <div className="hidden md:flex md:flex-col md:w-64 md:min-h-screen">
-        <div className="flex-1 flex flex-col gap-0.5 p-4">
-          {navItems.map((item) => (
-            <button
-              key={item.label}
-              onClick={() => onTabChange(item.value)}
-              className={`flex items-center gap-2 rounded-md p-2 text-sm font-semibold text-left hover:bg-secondary ${
-                activeTab === item.value ? 'bg-secondary' : ''
-              }`}
+      {/* Desktop sidebar */}
+      <div className={cn(
+        "hidden lg:block fixed left-0 top-0 h-full bg-card border-r transition-all duration-300 z-30",
+        collapsed ? "w-16" : "w-64"
+      )}>
+        <div className="p-4 border-b">
+          <div className="flex items-center justify-between">
+            {!collapsed && (
+              <h1 className="text-lg font-semibold">Sistema de Estoque</h1>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCollapsed(!collapsed)}
+              className="p-2"
             >
-              <item.icon className="h-4 w-4" />
-              {item.label}
-            </button>
-          ))}
+              {collapsed ? "→" : "←"}
+            </Button>
+          </div>
         </div>
 
-        <div className="p-4">
-          <p className="text-sm text-muted-foreground">
-            Sistema de Gestão de Estoque
-          </p>
-        </div>
+        <nav className="p-2 space-y-1">
+          {menuItems.map((item) => (
+            <Button
+              key={item.id}
+              variant={activeTab === item.id ? "default" : "ghost"}
+              className={cn(
+                "w-full justify-start",
+                collapsed ? "px-2" : "px-3"
+              )}
+              onClick={() => onTabChange(item.id)}
+            >
+              <item.icon className={cn("h-5 w-5", !collapsed && "mr-3")} />
+              {!collapsed && <span>{item.label}</span>}
+            </Button>
+          ))}
+        </nav>
       </div>
-    </div>
+    </>
   );
 }
