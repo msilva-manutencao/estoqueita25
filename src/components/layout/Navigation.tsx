@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 const navItems = [
   { icon: BarChart3, label: "Dashboard", value: "dashboard" },
@@ -29,11 +30,18 @@ interface NavigationProps {
 }
 
 export function Navigation({ activeTab, onTabChange }: NavigationProps) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const handleTabClick = (tab: string) => {
+    onTabChange(tab);
+    setMobileMenuOpen(false); // Fechar o menu ao clicar
+  };
+
   return (
     <div className="border-b md:border-b-0 md:border-r bg-card">
       {/* Mobile Navigation - Floating Menu Button */}
       <div className="md:hidden fixed top-4 left-4 z-50">
-        <Sheet>
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
             <Button variant="outline" size="sm" className="shadow-lg bg-card">
               <Menu className="h-4 w-4" />
@@ -51,7 +59,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
               {navItems.map((item) => (
                 <button
                   key={item.label}
-                  onClick={() => onTabChange(item.value)}
+                  onClick={() => handleTabClick(item.value)}
                   className={`flex items-center gap-2 rounded-md p-2 text-sm font-semibold text-left hover:bg-secondary ${
                     activeTab === item.value ? 'bg-secondary' : ''
                   }`}
