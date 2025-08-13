@@ -39,16 +39,30 @@ export function QuantityInput({
     const inputVal = e.target.value;
     setInputValue(inputVal);
     
-    const numValue = parseFloat(inputVal);
+    // Permitir valores vazios durante a digitação
+    if (inputVal === '') {
+      return;
+    }
+    
+    // Permitir pontos e vírgulas como separadores decimais
+    const normalizedValue = inputVal.replace(',', '.');
+    const numValue = parseFloat(normalizedValue);
+    
     if (!isNaN(numValue) && numValue >= min && numValue <= max) {
       onChange(numValue);
     }
   };
 
   const handleInputBlur = () => {
-    const numValue = parseFloat(inputValue);
-    if (isNaN(numValue) || numValue < min || numValue > max) {
+    const normalizedValue = inputValue.replace(',', '.');
+    const numValue = parseFloat(normalizedValue);
+    
+    if (isNaN(numValue) || numValue < min || numValue > max || inputValue === '') {
       setInputValue(value.toString());
+    } else {
+      // Atualizar com o valor normalizado
+      setInputValue(numValue.toString());
+      onChange(numValue);
     }
   };
 
@@ -66,14 +80,13 @@ export function QuantityInput({
       </Button>
       
       <Input
-        type="number"
+        type="text"
+        inputMode="decimal"
         value={inputValue}
         onChange={handleInputChange}
         onBlur={handleInputBlur}
-        step={step}
-        min={min}
-        max={max}
         className="w-20 text-center h-8"
+        placeholder="0"
       />
       
       <Button

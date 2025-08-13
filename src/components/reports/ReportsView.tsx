@@ -56,6 +56,16 @@ export default function ReportsView() {
       <Badge variant="destructive">Saída</Badge>;
   };
 
+  // Agrupar movimentações por categoria
+  const movementsByCategory = movements.reduce((acc, movement) => {
+    const categoryName = movement.items?.categories?.name || 'Sem Categoria';
+    if (!acc[categoryName]) {
+      acc[categoryName] = [];
+    }
+    acc[categoryName].push(movement);
+    return acc;
+  }, {} as Record<string, typeof movements>);
+
   // Format movements data for export
   const formatMovementsForExport = () => {
     return movements.map(movement => [
@@ -91,14 +101,6 @@ export default function ReportsView() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="text-center md:text-left">
-        <h1 className="text-3xl font-bold text-center">Relatórios</h1>
-        <p className="text-muted-foreground text-center md:text-left">
-          Análise detalhada das movimentações de estoque
-        </p>
-      </div>
-
       {/* Filtros */}
       <Card>
         <CardHeader>
@@ -193,67 +195,81 @@ export default function ReportsView() {
         </Card>
       </div>
 
-      {/* Tabela de Movimentações */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-center md:text-left">Histórico de Movimentações</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-[100px]">Data</TableHead>
-                  <TableHead className="min-w-[150px]">Item</TableHead>
-                  <TableHead className="min-w-[120px]">Categoria</TableHead>
-                  <TableHead className="min-w-[100px]">Tipo</TableHead>
-                  <TableHead className="min-w-[100px]">Quantidade</TableHead>
-                  <TableHead className="min-w-[80px]">Unidade</TableHead>
-                  <TableHead className="min-w-[150px]">Descrição</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {movements.map((movement) => (
-                  <TableRow key={movement.id}>
-                    <TableCell className="whitespace-nowrap">
-                      {new Date(movement.date).toLocaleDateString('pt-BR')}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      {movement.items?.name || 'Item não encontrado'}
-                    </TableCell>
-                    <TableCell>
-                      {movement.items?.categories?.name || 'Sem categoria'}
-                    </TableCell>
-                    <TableCell>
-                      {getMovementTypeBadge(movement.movement_type)}
-                    </TableCell>
-                    <TableCell>
-                      <span className={movement.movement_type === 'entrada' ? 'text-green-600' : 'text-red-600'}>
-                        {movement.movement_type === 'entrada' ? '+' : '-'}{movement.quantity}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {movement.items?.units?.abbreviation || movement.items?.units?.name || 'un'}
-                    </TableCell>
-                    <TableCell className="max-w-[200px] truncate">
-                      {movement.description || 'Sem descrição'}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          
-          {movements.length === 0 && (
-            <div className="text-center py-8">
+      {/* Movimentações agrupadas por categoria */}
+      <div className="space-y-6">
+        {Object.entries(movementsByCategory).map(([categoryName, categoryMovements]) => (
+          <Card key={categoryName}>
+            <CardHeader>
+              <CardTitle className="text-center md:text-left">
+                {categoryName} ({categoryMovements.length} movimentações)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-20 md:w-24">Data</TableHead>
+                      <TableHead className="min-w-32">Item</TableHead>
+                      <TableHead className="w-20 md:w-24">Tipo</TableHead>
+                      <TableHead className="w-20 md:w-24">Qtd</TableHead>
+                      <TableHead className="w-16 md:w-20">Un.</TableHead>
+                      <TableHead className="hidden md:table-cell min-w-40">Descrição</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {categoryMovements.map((movement) => (
+                      <TableRow key={movement.id}>
+                        <TableCell className="text-xs md:text-sm whitespace-nowrap">
+                          {new Date(movement.date).toLocaleDateString('pt-BR', { 
+                            day: '2-digit', 
+                            month: '2-digit' 
+                          })}
+                        </TableCell>
+                        <TableCell className="font-medium text-xs md:text-sm">
+                          <div className="truncate max-w-32 md:max-w-none">
+                            {movement.items?.name || 'Item não encontrado'}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs md:text-sm">
+                          <Badge 
+                            variant={movement.movement_type === 'entrada' ? 'default' : 'destructive'}
+                            className="text-xs px-1 py-0"
+                          >
+                            {movement.movement_type === 'entrada' ? 'E' : 'S'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs md:text-sm">
+                          <span className={movement.movement_type === 'entrada' ? 'text-green-600' : 'text-red-600'}>
+                            {movement.movement_type === 'entrada' ? '+' : '-'}{movement.quantity}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-xs md:text-sm">
+                          {movement.items?.units?.abbreviation || movement.items?.units?.name || 'un'}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-xs md:text-sm max-w-40 truncate">
+                          {movement.description || 'Sem descrição'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        
+        {movements.length === 0 && (
+          <Card>
+            <CardContent className="text-center py-8">
               <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">
                 Nenhuma movimentação encontrada no período selecionado.
               </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
