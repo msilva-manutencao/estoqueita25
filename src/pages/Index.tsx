@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Navigation } from "@/components/layout/Navigation";
 import { AddItemForm } from "@/components/forms/AddItemForm";
@@ -72,7 +73,7 @@ export default function Index() {
             </div>
           </div>
         );
-      case "add":
+      case "add-item":
         return (
           <div>
             <div className="text-center mb-6">
@@ -108,7 +109,7 @@ export default function Index() {
             <BatchExitForm />
           </div>
         );
-      case "lists":
+      case "standard-lists":
         return (
           <div>
             <div className="text-center mb-6">
@@ -135,7 +136,7 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation activeView={activeView} onViewChange={setActiveView} />
+      <Navigation activeTab={activeView} onTabChange={setActiveView} />
       <main className="lg:ml-64 p-4 lg:p-8">
         {renderContent()}
       </main>
