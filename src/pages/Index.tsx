@@ -10,6 +10,10 @@ import { TopStockRanking } from "@/components/dashboard/TopStockRanking";
 import ReportsView from "@/components/reports/ReportsView";
 import { ExportView } from "@/components/reports/ExportView";
 import { StandardListsManager } from "@/components/standard-lists/StandardListsManager";
+import { ItemsManager } from "@/components/items/ItemsManager";
+import { UnitsManager } from "@/components/units/UnitsManager";
+import { CategoriesManager } from "@/components/categories/CategoriesManager";
+import { AuthDebug } from "@/components/debug/AuthDebug";
 import { AuthPage } from "@/components/auth/AuthPage";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -107,6 +111,34 @@ export default function Index() {
               <h1 className="text-3xl font-bold">Saída em Lote</h1>
             </div>
             <BatchExitForm />
+          </div>
+        );
+      case "items":
+        return (
+          <div>
+            <div className="text-center mb-6">
+              <h1 className="text-3xl font-bold">Gerenciar Itens</h1>
+            </div>
+            <AuthDebug />
+            <ItemsManager />
+          </div>
+        );
+      case "categories":
+        return (
+          <div>
+            <div className="text-center mb-6">
+              <h1 className="text-3xl font-bold">Gerenciar Categorias</h1>
+            </div>
+            <CategoriesManager />
+          </div>
+        );
+      case "units":
+        return (
+          <div>
+            <div className="text-center mb-6">
+              <h1 className="text-3xl font-bold">Gerenciar Unidades</h1>
+            </div>
+            <UnitsManager />
           </div>
         );
       case "standard-lists":

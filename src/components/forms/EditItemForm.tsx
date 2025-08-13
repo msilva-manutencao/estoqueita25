@@ -11,11 +11,12 @@ import { useSupabaseItems } from "@/hooks/useSupabaseItems";
 
 interface EditItemFormProps {
   item: any;
-  onSave: (item: any) => void;
-  onCancel: () => void;
+  onSuccess?: () => void;
+  onSave?: (item: any) => void;
+  onCancel?: () => void;
 }
 
-export function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
+export function EditItemForm({ item, onSuccess, onSave, onCancel }: EditItemFormProps) {
   const { categories } = useSupabaseCategories();
   const { units } = useSupabaseUnits();
   const { updateItem } = useSupabaseItems();
@@ -127,7 +128,8 @@ export function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
     const success = await updateItem(formData.id, updateData);
 
     if (success) {
-      onSave(formData);
+      onSuccess?.();
+      onSave?.(formData);
     }
   };
 
@@ -217,9 +219,11 @@ export function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
       </div>
 
       <div className="flex justify-end space-x-2 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancelar
-        </Button>
+        {onCancel && (
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
+        )}
         <Button type="submit">
           Salvar Alterações
         </Button>
