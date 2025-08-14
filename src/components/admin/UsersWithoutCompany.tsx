@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,10 +31,33 @@ export const UsersWithoutCompany = () => {
   const fetchUsersWithoutCompany = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.rpc('list_users_without_company');
       
-      if (error) throw error;
-      setUsers(data || []);
+      // Buscar usuários que não estão em nenhuma empresa
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, created_at');
+      
+      if (profilesError) throw profilesError;
+
+      const { data: companyUsers, error: companyUsersError } = await supabase
+        .from('company_users')
+        .select('user_id')
+        .eq('is_active', true);
+      
+      if (companyUsersError) throw companyUsersError;
+
+      const usersWithCompanies = new Set(companyUsers?.map(cu => cu.user_id) || []);
+      
+      const usersWithoutCompany = profiles?.filter(profile => 
+        !usersWithCompanies.has(profile.id)
+      ).map(profile => ({
+        user_id: profile.id,
+        email: profile.email,
+        full_name: profile.full_name || profile.email,
+        created_at: profile.created_at
+      })) || [];
+      
+      setUsers(usersWithoutCompany);
     } catch (error) {
       console.error('Erro ao buscar usuários sem empresa:', error);
       toast.error('Erro ao carregar usuários sem empresa');
@@ -50,26 +74,24 @@ export const UsersWithoutCompany = () => {
 
     try {
       setProcessing(true);
-      const { data, error } = await supabase.rpc('add_user_to_company', {
-        p_user_email: selectedUser.email,
-        p_company_id: selectedCompany,
-        p_permission_type: selectedPermission
-      });
+      
+      const { error } = await supabase
+        .from('company_users')
+        .insert({
+          user_id: selectedUser.user_id,
+          company_id: selectedCompany,
+          permission_type: selectedPermission,
+          created_by: selectedUser.user_id
+        });
 
       if (error) throw error;
 
-      const result = data as { success: boolean; message?: string; error?: string };
-      
-      if (result.success) {
-        toast.success(result.message || 'Usuário adicionado com sucesso!');
-        setIsDialogOpen(false);
-        setSelectedUser(null);
-        setSelectedCompany('');
-        setSelectedPermission('read');
-        await fetchUsersWithoutCompany();
-      } else {
-        toast.error(result.error || 'Erro ao adicionar usuário');
-      }
+      toast.success('Usuário adicionado com sucesso!');
+      setIsDialogOpen(false);
+      setSelectedUser(null);
+      setSelectedCompany('');
+      setSelectedPermission('read');
+      await fetchUsersWithoutCompany();
     } catch (error) {
       console.error('Erro ao adicionar usuário à empresa:', error);
       toast.error('Erro ao adicionar usuário à empresa');
