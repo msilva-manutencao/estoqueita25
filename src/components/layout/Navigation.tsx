@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { MobileSidebar } from "./MobileSidebar";
 import { CompanySelector } from "@/components/companies/CompanySelector";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
+import { useAuth } from "@/hooks/useAuth";
 import {
   LayoutDashboard,
   Plus,
@@ -19,7 +20,8 @@ import {
   Ruler,
   Users,
   Building2,
-  Crown
+  Crown,
+  LogOut
 } from "lucide-react";
 
 interface NavigationProps {
@@ -30,6 +32,7 @@ interface NavigationProps {
 export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   const [collapsed, setCollapsed] = useState(false);
   const { isSuperAdmin } = useSuperAdmin();
+  const { signOut } = useAuth();
 
   const baseMenuItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -60,15 +63,15 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
         <MobileSidebar
           activeTab={activeTab}
           onTabChange={onTabChange}
-          menuItems={menuItems}
         />
       </div>
 
       {/* Desktop sidebar */}
       <div className={cn(
-        "hidden lg:block fixed left-0 top-0 h-full bg-card border-r transition-all duration-300 z-30",
+        "hidden lg:block fixed left-0 top-0 h-screen bg-card border-r transition-all duration-300 z-30",
         collapsed ? "w-16" : "w-64"
       )}>
+        {/* Header fixo */}
         <div className="p-4 border-b">
           <div className="flex items-center justify-between">
             {!collapsed && (
@@ -90,7 +93,14 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
           )}
         </div>
 
-        <nav className="p-2 space-y-1">
+        {/* Área de navegação com scroll */}
+        <div 
+          className="sidebar-scroll p-2 space-y-1" 
+          style={{ 
+            height: 'calc(100vh - 180px)', 
+            overflowY: 'scroll' 
+          }}
+        >
           {menuItems.map((item) => (
             <Button
               key={item.id}
@@ -105,7 +115,22 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
               {!collapsed && <span>{item.label}</span>}
             </Button>
           ))}
-        </nav>
+        </div>
+
+        {/* Logout button fixo no bottom */}
+        <div className="absolute bottom-0 left-0 right-0 p-2 border-t bg-card">
+          <Button
+            variant="ghost"
+            className={cn(
+              "w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50",
+              collapsed ? "px-2" : "px-3"
+            )}
+            onClick={signOut}
+          >
+            <LogOut className={cn("h-5 w-5", !collapsed && "mr-3")} />
+            {!collapsed && <span>Sair</span>}
+          </Button>
+        </div>
       </div>
     </>
   );

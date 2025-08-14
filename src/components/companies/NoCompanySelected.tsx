@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Building2, Plus } from 'lucide-react';
 import { useCompanies } from '@/hooks/useCompanies';
+import { NoCompanyAccess } from './NoCompanyAccess';
 
 interface NoCompanySelectedProps {
   onNavigateToCompanies: () => void;
@@ -18,6 +19,12 @@ export const NoCompanySelected = ({ onNavigateToCompanies }: NoCompanySelectedPr
     );
   }
 
+  // Se não há empresas, mostrar tela de acesso pendente
+  if (companies.length === 0) {
+    return <NoCompanyAccess />;
+  }
+
+  // Se há empresas mas nenhuma selecionada
   return (
     <Card className="max-w-md mx-auto mt-8">
       <CardHeader className="text-center">
@@ -26,34 +33,19 @@ export const NoCompanySelected = ({ onNavigateToCompanies }: NoCompanySelectedPr
         </div>
         <CardTitle>Nenhuma Empresa Selecionada</CardTitle>
         <CardDescription>
-          {companies.length === 0 
-            ? 'Você precisa criar uma empresa para começar a usar o sistema'
-            : 'Selecione uma empresa para acessar o estoque'
-          }
+          Selecione uma empresa para acessar o estoque
         </CardDescription>
       </CardHeader>
       <CardContent className="text-center space-y-4">
-        {companies.length === 0 ? (
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              Crie sua primeira empresa para organizar seu estoque
-            </p>
-            <Button onClick={onNavigateToCompanies} className="w-full">
-              <Plus className="h-4 w-4 mr-2" />
-              Criar Primeira Empresa
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              Use o seletor de empresa no menu lateral para escolher uma empresa
-            </p>
-            <Button variant="outline" onClick={onNavigateToCompanies} className="w-full">
-              <Building2 className="h-4 w-4 mr-2" />
-              Gerenciar Empresas
-            </Button>
-          </div>
-        )}
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            Use o seletor de empresa no menu lateral para escolher uma empresa
+          </p>
+          <Button variant="outline" onClick={onNavigateToCompanies} className="w-full">
+            <Building2 className="h-4 w-4 mr-2" />
+            Gerenciar Empresas
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

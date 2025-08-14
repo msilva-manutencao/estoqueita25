@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from '@/components/ui/badge';
 import { useCompanies } from '@/hooks/useCompanies';
 import { useAuth } from '@/hooks/useAuth';
+import { useSuperAdmin } from '@/hooks/useSuperAdmin';
 import { Plus, Building2, Users, Settings, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CompanyUsersManager } from './CompanyUsersManager';
@@ -15,6 +16,7 @@ import { CompanyUsersManager } from './CompanyUsersManager';
 export const CompaniesManager = () => {
   const { companies, loading, createCompany, updateCompany, deleteCompany } = useCompanies();
   const { user } = useAuth();
+  const { isSuperAdmin, loading: superAdminLoading } = useSuperAdmin();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<any>(null);
@@ -66,7 +68,7 @@ export const CompaniesManager = () => {
     }
   };
 
-  if (loading) {
+  if (loading || superAdminLoading) {
     return <div className="flex justify-center p-8">Carregando empresas...</div>;
   }
 
@@ -89,19 +91,25 @@ export const CompaniesManager = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Gerenciar Empresas</h2>
+          <h2 className="text-2xl font-bold">
+            {isSuperAdmin ? 'Gerenciar Empresas' : 'Minhas Empresas'}
+          </h2>
           <p className="text-muted-foreground">
-            Crie e gerencie empresas para organizar seu estoque
+            {isSuperAdmin 
+              ? 'Crie e gerencie empresas para organizar seu estoque'
+              : 'Empresas às quais você tem acesso'
+            }
           </p>
         </div>
         
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Empresa
-            </Button>
-          </DialogTrigger>
+        {isSuperAdmin && (
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Nova Empresa
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Criar Nova Empresa</DialogTitle>
@@ -139,6 +147,7 @@ export const CompaniesManager = () => {
             </form>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -150,8 +159,10 @@ export const CompaniesManager = () => {
                   <Building2 className="h-5 w-5 text-primary" />
                   <CardTitle className="text-lg">{company.name}</CardTitle>
                 </div>
-                {company.owner_id === user?.id && (
+                {company.owner_id === user?.id ? (
                   <Badge variant="secondary">Proprietário</Badge>
+                ) : (
+                  <Badge variant="outline">Membro</Badge>
                 )}
               </div>
               {company.description && (
@@ -160,16 +171,18 @@ export const CompaniesManager = () => {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowUsersManager(company.id)}
-                >
-                  <Users className="h-4 w-4 mr-1" />
-                  Usuários
-                </Button>
+                {(company.owner_id === user?.id || isSuperAdmin) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowUsersManager(company.id)}
+                  >
+                    <Users className="h-4 w-4 mr-1" />
+                    Usuários
+                  </Button>
+                )}
                 
-                {company.owner_id === user?.id && (
+                {(company.owner_id === user?.id || isSuperAdmin) && (
                   <>
                     <Button
                       variant="outline"
@@ -202,12 +215,17 @@ export const CompaniesManager = () => {
             <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">Nenhuma empresa encontrada</h3>
             <p className="text-muted-foreground mb-4">
-              Crie sua primeira empresa para começar a organizar seu estoque
+              {isSuperAdmin 
+                ? 'Crie sua primeira empresa para começar a organizar seu estoque'
+                : 'Você ainda não tem acesso a nenhuma empresa. Entre em contato com o administrador.'
+              }
             </p>
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Criar Primeira Empresa
-            </Button>
+            {isSuperAdmin && (
+              <Button onClick={() => setIsCreateDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Criar Primeira Empresa
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}

@@ -1,12 +1,14 @@
 import { useSupabaseItems } from "@/hooks/useSupabaseItems";
 import { useSupabaseCategories } from "@/hooks/useSupabaseCategories";
 import { useSupabaseUnits } from "@/hooks/useSupabaseUnits";
+import { useCurrentCompany } from "@/hooks/useCurrentCompany";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function ItemsDebug() {
   const { items, loading: itemsLoading } = useSupabaseItems();
   const { categories, loading: categoriesLoading } = useSupabaseCategories();
   const { units, loading: unitsLoading } = useSupabaseUnits();
+  const { currentCompany } = useCurrentCompany();
 
   return (
     <div className="space-y-4">
@@ -15,6 +17,13 @@ export function ItemsDebug() {
           <CardTitle>Debug - Status dos Dados</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div>
+            <h3 className="font-semibold">Empresa Atual:</h3>
+            <p>Nome: {currentCompany?.name || "Nenhuma"}</p>
+            <p>ID: {currentCompany?.id || "N/A"}</p>
+            <p>Timestamp: {Date.now()}</p>
+          </div>
+          
           <div>
             <h3 className="font-semibold">Itens:</h3>
             <p>Loading: {itemsLoading ? "Sim" : "Não"}</p>

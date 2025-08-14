@@ -3,6 +3,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSupabaseCategories } from "./useSupabaseCategories";
+import { useCurrentCompany } from "./useCurrentCompany";
 
 export interface CategoryFormData {
   name: string;
@@ -13,15 +14,21 @@ export function useSupabaseCategoriesCRUD() {
   const { categories, loading, fetchCategories } = useSupabaseCategories();
   const [operationLoading, setOperationLoading] = useState(false);
   const { toast } = useToast();
+  const { currentCompany } = useCurrentCompany();
 
   const addCategory = async (categoryData: CategoryFormData) => {
+    if (!currentCompany) return false;
+
     try {
       setOperationLoading(true);
       console.log('Inserindo nova categoria:', categoryData);
       
       const { data, error } = await supabase
         .from('categories')
-        .insert(categoryData)
+        .insert({
+          ...categoryData,
+          company_id: currentCompany.id
+        })
         .select();
 
       if (error) {

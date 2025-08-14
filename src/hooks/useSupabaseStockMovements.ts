@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrentCompany } from "./useCurrentCompany";
 
 export interface SupabaseStockMovement {
   id: string;
@@ -27,15 +28,22 @@ export function useSupabaseStockMovements() {
   const [movements, setMovements] = useState<SupabaseStockMovement[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { currentCompany } = useCurrentCompany();
 
   const fetchMovements = async (filters?: {
     startDate?: string;
     endDate?: string;
     movementType?: 'entrada' | 'saida' | 'all';
   }) => {
+    if (!currentCompany) {
+      setMovements([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      console.log('Buscando movimentações no Supabase...');
+      console.log('Buscando movimentações no Supabase para empresa:', currentCompany.id);
       
       let query = supabase
         .from('stock_movements')
@@ -47,6 +55,7 @@ export function useSupabaseStockMovements() {
             units (name, abbreviation)
           )
         `)
+        .eq('company_id', currentCompany.id)
         .order('date', { ascending: false });
 
       if (filters?.startDate) {
@@ -108,6 +117,8 @@ export function useSupabaseStockMovements() {
     description?: string;
     date?: string;
   }) => {
+    if (!currentCompany) return null;
+
     try {
       console.log('Adicionando movimentação:', movement);
       
@@ -116,6 +127,7 @@ export function useSupabaseStockMovements() {
         .insert([{
           ...movement,
           date: movement.date || new Date().toISOString(),
+          company_id: currentCompany.id,
         }])
         .select(`
           *,
@@ -185,7 +197,7 @@ export function useSupabaseStockMovements() {
 
   useEffect(() => {
     fetchMovements();
-  }, []);
+  }, [currentCompany]);
 
   return {
     movements,

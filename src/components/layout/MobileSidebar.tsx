@@ -3,16 +3,27 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { 
-  LayoutDashboard, 
-  Plus, 
-  Minus, 
-  AlertTriangle, 
-  FileText,
-  ClipboardList,
+  LayoutDashboard,
+  Plus,
+  Minus,
+  ArrowDownToLine,
+  ArrowUpFromLine,
   Package,
-  Menu
+  FileText,
+  Download,
+  List,
+  Tag,
+  Ruler,
+  Users,
+  Building2,
+  Crown,
+  Menu,
+  LogOut
 } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { useSuperAdmin } from "@/hooks/useSuperAdmin";
+import { CompanySelector } from "@/components/companies/CompanySelector";
 
 interface MobileSidebarProps {
   activeTab: string;
@@ -21,44 +32,30 @@ interface MobileSidebarProps {
 
 export function MobileSidebar({ activeTab, onTabChange }: MobileSidebarProps) {
   const [open, setOpen] = useState(false);
+  const { signOut } = useAuth();
+  const { isSuperAdmin } = useSuperAdmin();
 
-  const navItems = [
-    {
-      id: "dashboard",
-      label: "Dashboard",
-      icon: LayoutDashboard,
-    },
-    {
-      id: "add-item",
-      label: "Adicionar Item",
-      icon: Plus,
-    },
-    {
-      id: "withdraw", 
-      label: "Baixa de Estoque",
-      icon: Minus,
-    },
-    {
-      id: "items",
-      label: "Gerenciar Itens",
-      icon: Package,
-    },
-    {
-      id: "standard-lists",
-      label: "Fichas Padrão",
-      icon: ClipboardList,
-    },
-    {
-      id: "alerts",
-      label: "Alertas",
-      icon: AlertTriangle,
-    },
-    {
-      id: "reports",
-      label: "Relatórios", 
-      icon: FileText,
-    },
+  const baseMenuItems = [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "add-item", label: "Adicionar Item", icon: Plus },
+    { id: "withdraw", label: "Retirar Item", icon: Minus },
+    { id: "batch-entry", label: "Entrada em Lote", icon: ArrowDownToLine },
+    { id: "batch-exit", label: "Saída em Lote", icon: ArrowUpFromLine },
+    { id: "items", label: "Gerenciar Itens", icon: Package },
+    { id: "categories", label: "Categorias", icon: Tag },
+    { id: "units", label: "Unidades", icon: Ruler },
+    { id: "standard-lists", label: "Listas Padrão", icon: List },
+    { id: "companies", label: "Empresas", icon: Building2 },
+    { id: "users", label: "Usuários", icon: Users },
+    { id: "reports", label: "Relatórios", icon: FileText },
+    { id: "export", label: "Exportar", icon: Download },
   ];
+
+  const adminMenuItems = [
+    { id: "admin", label: "Super Admin", icon: Crown },
+  ];
+
+  const navItems = isSuperAdmin ? [...baseMenuItems, ...adminMenuItems] : baseMenuItems;
 
   const handleItemClick = (itemId: string) => {
     onTabChange(itemId);
@@ -73,14 +70,17 @@ export function MobileSidebar({ activeTab, onTabChange }: MobileSidebarProps) {
           <span className="sr-only">Abrir menu</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-72">
-        <div className="flex flex-col space-y-4 py-4">
-          <div className="px-3 py-2">
+      <SheetContent side="left" className="w-72 flex flex-col">
+        <div className="flex flex-col h-full py-4">
+          <div className="px-3 py-2 flex-shrink-0">
             <h2 className="mb-2 px-4 text-lg font-semibold">
-              AppStoq
+              Sistema de Estoque
             </h2>
           </div>
-          <div className="px-3">
+          <div className="px-3 mb-4 flex-shrink-0">
+            <CompanySelector />
+          </div>
+          <div className="px-3 flex-1 overflow-y-auto">
             <div className="space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -100,6 +100,19 @@ export function MobileSidebar({ activeTab, onTabChange }: MobileSidebarProps) {
                 );
               })}
             </div>
+          </div>
+          <div className="px-3 pt-4 border-t flex-shrink-0">
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => {
+                signOut();
+                setOpen(false);
+              }}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Sair
+            </Button>
           </div>
         </div>
       </SheetContent>

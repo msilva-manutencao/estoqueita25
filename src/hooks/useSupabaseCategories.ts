@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useCurrentCompany } from "./useCurrentCompany";
 
 export interface SupabaseCategory {
   id: string;
@@ -12,13 +13,23 @@ export interface SupabaseCategory {
 export function useSupabaseCategories() {
   const [categories, setCategories] = useState<SupabaseCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const { currentCompany } = useCurrentCompany();
 
   const fetchCategories = async () => {
+    if (!currentCompany) {
+      setCategories([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
+      console.log('Buscando categorias para empresa:', currentCompany.id);
+      
       const { data, error } = await supabase
         .from('categories')
         .select('*')
+        .eq('company_id', currentCompany.id)
         .order('name');
 
       if (error) {
@@ -26,6 +37,7 @@ export function useSupabaseCategories() {
         return;
       }
 
+      console.log('Categorias encontradas:', data?.length || 0);
       setCategories(data || []);
     } catch (error) {
       console.error('Erro na conexão:', error);
@@ -36,7 +48,7 @@ export function useSupabaseCategories() {
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [currentCompany?.id]); // Simplificar dependências
 
   return {
     categories,

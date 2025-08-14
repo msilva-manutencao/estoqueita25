@@ -3,6 +3,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSupabaseUnits } from "./useSupabaseUnits";
+import { useCurrentCompany } from "./useCurrentCompany";
 
 export interface UnitFormData {
   name: string;
@@ -13,15 +14,21 @@ export function useSupabaseUnitsCRUD() {
   const { units, loading, fetchUnits } = useSupabaseUnits();
   const [operationLoading, setOperationLoading] = useState(false);
   const { toast } = useToast();
+  const { currentCompany } = useCurrentCompany();
 
   const addUnit = async (unitData: UnitFormData) => {
+    if (!currentCompany) return false;
+
     try {
       setOperationLoading(true);
       console.log('Inserindo nova unidade:', unitData);
       
       const { data, error } = await supabase
         .from('units')
-        .insert(unitData)
+        .insert({
+          ...unitData,
+          company_id: currentCompany.id
+        })
         .select();
 
       if (error) {

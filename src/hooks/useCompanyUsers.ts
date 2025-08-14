@@ -14,22 +14,13 @@ export const useCompanyUsers = (companyId?: string) => {
 
     try {
       const { data, error } = await supabase
-        .from('company_users')
-        .select(`
-          *,
-          user:user_id (
-            email,
-            profiles (
-              full_name
-            )
-          )
-        `)
-        .eq('company_id', companyId)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+        .rpc('get_company_users_with_profiles', { p_company_id: companyId });
 
       if (error) throw error;
-      setCompanyUsers(data || []);
+
+      // Os dados já vêm no formato correto da função RPC
+      const users = data || [];
+      setCompanyUsers(users);
     } catch (error) {
       console.error('Erro ao buscar usuários da empresa:', error);
       toast.error('Erro ao carregar usuários da empresa');
@@ -42,41 +33,33 @@ export const useCompanyUsers = (companyId?: string) => {
     if (!user || !companyId) return null;
 
     try {
-      // Primeiro, buscar o usuário pelo email
-      const { data: userData, error: userError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', userEmail)
-        .single();
+      // Usar função RPC para adicionar usuário à empresa
+      const { data, error } = await supabase
+        .rpc('add_user_to_company_by_email', {
+          p_user_email: userEmail.trim(),
+          p_company_id: companyId,
+          p_permission_type: permissionType
+        });
 
-      if (userError || !userData) {
-        toast.error('Usuário não encontrado');
+      if (error) {
+        console.error('Erro ao adicionar usuário:', error);
+        toast.error('Erro ao adicionar usuário: ' + error.message);
         return null;
       }
 
-      const { data, error } = await supabase
-        .from('company_users')
-        .insert({
-          company_id: companyId,
-          user_id: userData.id,
-          permission_type: permissionType,
-          created_by: user.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      toast.success('Usuário adicionado à empresa com sucesso!');
-      await fetchCompanyUsers();
-      return data;
+      const result = data as { success: boolean; message?: string; error?: string };
+      
+      if (result.success) {
+        toast.success(result.message || 'Usuário adicionado com sucesso!');
+        await fetchCompanyUsers();
+        return { success: true };
+      } else {
+        toast.error(result.error || 'Erro ao adicionar usuário');
+        return null;
+      }
     } catch (error: any) {
       console.error('Erro ao adicionar usuário à empresa:', error);
-      if (error.code === '23505') {
-        toast.error('Usuário já está na empresa');
-      } else {
-        toast.error('Erro ao adicionar usuário à empresa');
-      }
+      toast.error('Erro ao adicionar usuário à empresa: ' + (error.message || 'Erro desconhecido'));
       return null;
     }
   };

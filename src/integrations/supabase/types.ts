@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       categories: {
         Row: {
+          company_id: string
           created_at: string
           description: string | null
           id: string
@@ -24,6 +25,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          company_id: string
           created_at?: string
           description?: string | null
           id?: string
@@ -32,6 +34,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          company_id?: string
           created_at?: string
           description?: string | null
           id?: string
@@ -39,11 +42,88 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      companies: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
         Relationships: []
+      }
+      company_users: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          permission_type: Database["public"]["Enums"]["permission_type"]
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          permission_type?: Database["public"]["Enums"]["permission_type"]
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          permission_type?: Database["public"]["Enums"]["permission_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_users_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       items: {
         Row: {
           category_id: string
+          company_id: string
           created_at: string
           current_stock: number
           expiry_date: string | null
@@ -56,6 +136,7 @@ export type Database = {
         }
         Insert: {
           category_id: string
+          company_id: string
           created_at?: string
           current_stock?: number
           expiry_date?: string | null
@@ -68,6 +149,7 @@ export type Database = {
         }
         Update: {
           category_id?: string
+          company_id?: string
           created_at?: string
           current_stock?: number
           expiry_date?: string | null
@@ -84,6 +166,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
           {
@@ -160,6 +249,7 @@ export type Database = {
       }
       standard_lists: {
         Row: {
+          company_id: string | null
           created_at: string
           description: string | null
           id: string
@@ -168,6 +258,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -176,6 +267,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -183,10 +275,19 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "standard_lists_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stock_movements: {
         Row: {
+          company_id: string | null
           created_at: string
           date: string
           description: string | null
@@ -197,6 +298,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           date?: string
           description?: string | null
@@ -207,6 +309,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           date?: string
           description?: string | null
@@ -217,6 +320,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "stock_movements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stock_movements_item_id_fkey"
             columns: ["item_id"]
@@ -229,6 +339,7 @@ export type Database = {
       units: {
         Row: {
           abbreviation: string
+          company_id: string
           created_at: string
           id: string
           name: string
@@ -236,6 +347,7 @@ export type Database = {
         }
         Insert: {
           abbreviation: string
+          company_id: string
           created_at?: string
           id?: string
           name: string
@@ -243,12 +355,21 @@ export type Database = {
         }
         Update: {
           abbreviation?: string
+          company_id?: string
           created_at?: string
           id?: string
           name?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "units_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -282,14 +403,19 @@ export type Database = {
       }
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
+        Returns: boolean
+      }
+      is_super_admin: {
+        Args: { user_id?: string }
         Returns: boolean
       }
     }
     Enums: {
       app_role: "admin" | "user"
+      permission_type: "read" | "write" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -418,6 +544,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      permission_type: ["read", "write", "admin"],
     },
   },
 } as const

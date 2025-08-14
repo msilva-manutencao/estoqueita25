@@ -251,7 +251,7 @@ export function useSupabaseItems() {
 
   useEffect(() => {
     fetchItems();
-  }, [currentCompany]);
+  }, [currentCompany?.id]); // Simplificar dependências
 
   return {
     items,

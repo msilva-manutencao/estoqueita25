@@ -8,6 +8,7 @@ import { useCompanies } from '@/hooks/useCompanies';
 import { useSuperAdmin } from '@/hooks/useSuperAdmin';
 import { Crown, Building2, Users, Settings, Eye, Shield } from 'lucide-react';
 import { CompaniesManager } from '@/components/companies/CompaniesManager';
+import { UsersWithoutCompany } from './UsersWithoutCompany';
 
 export const SuperAdminPanel = () => {
   const { isSuperAdmin, loading: superAdminLoading } = useSuperAdmin();
@@ -145,10 +146,12 @@ export const SuperAdminPanel = () => {
           <CompaniesManager />
         </TabsContent>
 
-        <TabsContent value="users">
+        <TabsContent value="users" className="space-y-6">
+          <UsersWithoutCompany />
+          
           <Card>
             <CardHeader>
-              <CardTitle>Gerenciar Usuários</CardTitle>
+              <CardTitle>Todos os Usuários</CardTitle>
               <CardDescription>
                 Visualize e gerencie todos os usuários do sistema
               </CardDescription>

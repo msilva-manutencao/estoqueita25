@@ -6,6 +6,8 @@ interface CurrentCompanyContextType {
   setCurrentCompany: (company: Company | null) => void;
   userPermission: 'read' | 'write' | 'admin' | 'owner' | null;
   setUserPermission: (permission: 'read' | 'write' | 'admin' | 'owner' | null) => void;
+  clearCompanyData: () => void;
+  companyChangeTimestamp: number;
 }
 
 const CurrentCompanyContext = createContext<CurrentCompanyContextType | undefined>(undefined);
@@ -25,11 +27,13 @@ interface CurrentCompanyProviderProps {
 export const CurrentCompanyProvider = ({ children }: CurrentCompanyProviderProps) => {
   const [currentCompany, setCurrentCompany] = useState<Company | null>(null);
   const [userPermission, setUserPermission] = useState<'read' | 'write' | 'admin' | 'owner' | null>(null);
+  const [companyChangeTimestamp, setCompanyChangeTimestamp] = useState<number>(Date.now());
 
   useEffect(() => {
     if (currentCompany) {
       localStorage.setItem('currentCompany', JSON.stringify(currentCompany));
       localStorage.setItem('userPermission', userPermission || '');
+      setCompanyChangeTimestamp(Date.now()); // Atualizar timestamp quando empresa muda
     }
   }, [currentCompany, userPermission]);
 
@@ -47,11 +51,21 @@ export const CurrentCompanyProvider = ({ children }: CurrentCompanyProviderProps
     }
   }, []);
 
+  const clearCompanyData = () => {
+    setCurrentCompany(null);
+    setUserPermission(null);
+    localStorage.removeItem('currentCompany');
+    localStorage.removeItem('userPermission');
+    setCompanyChangeTimestamp(Date.now());
+  };
+
   const value = {
     currentCompany,
     setCurrentCompany,
     userPermission,
     setUserPermission,
+    clearCompanyData,
+    companyChangeTimestamp,
   };
 
   return (

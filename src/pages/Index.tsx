@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navigation } from "@/components/layout/Navigation";
 import { AddItemForm } from "@/components/forms/AddItemForm";
 import { WithdrawForm } from "@/components/forms/WithdrawForm";
@@ -16,14 +16,17 @@ import { CategoriesManager } from "@/components/categories/CategoriesManager";
 import { CompaniesManager } from "@/components/companies/CompaniesManager";
 import { SuperAdminPanel } from "@/components/admin/SuperAdminPanel";
 import { NoCompanySelected } from "@/components/companies/NoCompanySelected";
-import { AuthDebug } from "@/components/debug/AuthDebug";
+import { NoCompanyAccess } from "@/components/companies/NoCompanyAccess";
+import UsersPage from "@/pages/UsersPage";
+
 import { AuthPage } from "@/components/auth/AuthPage";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSupabaseItems } from "@/hooks/useSupabaseItems";
 import { useAuth } from "@/hooks/useAuth";
 import { useCurrentCompany } from "@/hooks/useCurrentCompany";
-import { Package, TrendingUp, AlertTriangle, Clock, LogOut } from "lucide-react";
+import { useCompanies } from "@/hooks/useCompanies";
+import { Package, TrendingUp, AlertTriangle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import React from "react";
 
@@ -32,17 +35,71 @@ export default function Index() {
   const { items } = useSupabaseItems();
   const { user, loading, signOut } = useAuth();
   const { currentCompany } = useCurrentCompany();
+  
+  // Importar useCompanies para verificar se o usuário tem acesso a empresas
+  const { companies: userCompanies, loading: companiesLoading } = useCompanies();
 
-  if (loading) {
+  // Debug logs
+  useEffect(() => {
+    console.log('Index - Estado atual:', {
+      user: user?.email,
+      loading,
+      companiesLoading,
+      userCompaniesCount: userCompanies.length,
+      currentCompany: currentCompany?.name
+    });
+  }, [user, loading, companiesLoading, userCompanies, currentCompany]);
+
+  // Timeout de segurança para evitar carregamento infinito
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (loading || companiesLoading) {
+        setLoadingTimeout(true);
+        console.warn('Timeout de carregamento atingido');
+      }
+    }, 10000); // 10 segundos
+
+    return () => clearTimeout(timer);
+  }, [loading, companiesLoading]);
+
+  if ((loading || companiesLoading) && !loadingTimeout) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Carregando...</div>
+        <div className="text-center">
+          <div className="text-lg mb-2">Carregando...</div>
+          <div className="text-sm text-muted-foreground">
+            Conectando ao servidor...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadingTimeout) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-lg mb-4 text-red-600">Erro de Conexão</div>
+          <div className="text-sm text-muted-foreground mb-4">
+            Não foi possível conectar ao servidor. Verifique sua conexão com a internet.
+          </div>
+          <Button onClick={() => window.location.reload()}>
+            Tentar Novamente
+          </Button>
+        </div>
       </div>
     );
   }
 
   if (!user) {
     return <AuthPage />;
+  }
+
+  // Se o usuário não tem acesso a nenhuma empresa, mostrar tela de acesso pendente
+  if (userCompanies.length === 0) {
+    return <NoCompanyAccess />;
   }
 
   const totalItems = items.length;
@@ -72,12 +129,6 @@ export default function Index() {
               <p className="text-muted-foreground">
                 Visão geral do seu estoque
               </p>
-              <div className="flex justify-center mt-4">
-                <Button variant="outline" onClick={signOut} className="flex items-center space-x-2">
-                  <LogOut className="h-4 w-4" />
-                  <span>Sair</span>
-                </Button>
-              </div>
             </div>
 
             <StockCard items={items} />
@@ -89,51 +140,15 @@ export default function Index() {
           </div>
         );
       case "add-item":
-        return (
-          <div>
-            <div className="text-center mb-6">
-              <h1 className="text-3xl font-bold">Adicionar Item</h1>
-            </div>
-            <AddItemForm />
-          </div>
-        );
+        return <AddItemForm />;
       case "withdraw":
-        return (
-          <div>
-            <div className="text-center mb-6">
-              <h1 className="text-3xl font-bold">Retirar Item</h1>
-            </div>
-            <WithdrawForm />
-          </div>
-        );
+        return <WithdrawForm />;
       case "batch-entry":
-        return (
-          <div>
-            <div className="text-center mb-6">
-              <h1 className="text-3xl font-bold">Entrada em Lote</h1>
-            </div>
-            <BatchEntryForm />
-          </div>
-        );
+        return <BatchEntryForm />;
       case "batch-exit":
-        return (
-          <div>
-            <div className="text-center mb-6">
-              <h1 className="text-3xl font-bold">Saída em Lote</h1>
-            </div>
-            <BatchExitForm />
-          </div>
-        );
+        return <BatchExitForm />;
       case "items":
-        return (
-          <div>
-            <div className="text-center mb-6">
-              <h1 className="text-3xl font-bold">Gerenciar Itens</h1>
-            </div>
-            <AuthDebug />
-            <ItemsManager />
-          </div>
-        );
+        return <ItemsManager />;
       case "categories":
         return (
           <div>
@@ -189,10 +204,7 @@ export default function Index() {
             <div className="text-center mb-6">
               <h1 className="text-3xl font-bold">Gerenciar Usuários</h1>
             </div>
-            <div>
-              {/* Dynamic import to avoid loading issues */}
-              {React.lazy(() => import('@/pages/UsersPage')).then(module => React.createElement(module.default))}
-            </div>
+            <UsersPage />
           </div>
         );
       default:

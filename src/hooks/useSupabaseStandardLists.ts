@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrentCompany } from "./useCurrentCompany";
 
 export interface SupabaseStandardList {
   id: string;
@@ -31,11 +32,18 @@ export function useSupabaseStandardLists() {
   const [standardLists, setStandardLists] = useState<SupabaseStandardList[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { currentCompany } = useCurrentCompany();
 
   const fetchStandardLists = async () => {
+    if (!currentCompany) {
+      setStandardLists([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      console.log('Buscando listas padrão no Supabase...');
+      console.log('Buscando listas padrão no Supabase para empresa:', currentCompany.id);
       
       const { data: lists, error } = await supabase
         .from('standard_lists')
@@ -53,6 +61,7 @@ export function useSupabaseStandardLists() {
             )
           )
         `)
+        .eq('company_id', currentCompany.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -90,6 +99,8 @@ export function useSupabaseStandardLists() {
     description?: string;
     items: Array<{ item_id: string; quantity: number }>;
   }) => {
+    if (!currentCompany) return false;
+
     try {
       console.log('Criando lista padrão:', listData);
 
@@ -98,7 +109,8 @@ export function useSupabaseStandardLists() {
         .from('standard_lists')
         .insert({
           name: listData.name,
-          description: listData.description
+          description: listData.description,
+          company_id: currentCompany.id
         })
         .select()
         .single();
@@ -330,7 +342,7 @@ export function useSupabaseStandardLists() {
 
   useEffect(() => {
     fetchStandardLists();
-  }, []);
+  }, [currentCompany]);
 
   return {
     standardLists,

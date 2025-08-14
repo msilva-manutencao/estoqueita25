@@ -1,0 +1,6 @@
+/*
+  Cross-Origin-Embedder-Policy: unsafe-none
+  Cross-Origin-Opener-Policy: unsafe-none
+  Permissions-Policy: attribution-reporting=()
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff

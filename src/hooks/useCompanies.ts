@@ -35,20 +35,58 @@ export const useCompanies = () => {
   const { user } = useAuth();
 
   const fetchCompanies = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
-      const { data, error } = await supabase
+      setLoading(true);
+      
+      // Buscar empresas onde o usuário é proprietário OU tem acesso via company_users
+      const { data: ownedCompanies, error: ownedError } = await supabase
         .from('companies')
         .select('*')
-        .eq('is_active', true)
-        .order('name');
+        .eq('owner_id', user.id)
+        .eq('is_active', true);
 
-      if (error) throw error;
-      setCompanies(data || []);
+      if (ownedError) throw ownedError;
+
+      const { data: accessibleCompanies, error: accessError } = await supabase
+        .from('company_users')
+        .select(`
+          companies!inner (
+            id,
+            name,
+            description,
+            created_at,
+            updated_at,
+            owner_id,
+            is_active
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .eq('companies.is_active', true);
+
+      if (accessError) throw accessError;
+
+      // Combinar empresas próprias e acessíveis, removendo duplicatas
+      const allCompanies = [
+        ...(ownedCompanies || []),
+        ...(accessibleCompanies?.map(item => item.companies).filter(Boolean) || [])
+      ];
+
+      // Remover duplicatas baseado no ID
+      const uniqueCompanies = allCompanies.filter((company, index, self) => 
+        index === self.findIndex(c => c.id === company.id)
+      );
+
+      setCompanies(uniqueCompanies.sort((a, b) => a.name.localeCompare(b.name)));
     } catch (error) {
       console.error('Erro ao buscar empresas:', error);
       toast.error('Erro ao carregar empresas');
+      setCompanies([]); // Definir array vazio em caso de erro
     } finally {
       setLoading(false);
     }
@@ -114,8 +152,23 @@ export const useCompanies = () => {
   };
 
   useEffect(() => {
-    fetchCompanies();
-  }, [user]);
+    let mounted = true;
+    
+    const loadCompanies = async () => {
+      if (user && mounted) {
+        await fetchCompanies();
+      } else if (!user && mounted) {
+        setCompanies([]);
+        setLoading(false);
+      }
+    };
+
+    loadCompanies();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id]); // Usar user.id ao invés de user para evitar re-renders desnecessários
 
   return {
     companies,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,121 +7,30 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
 import { EditItemForm } from "@/components/forms/EditItemForm";
 import { Package, Search, Edit, Trash2, AlertTriangle, Calendar, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useToast } from "@/hooks/use-toast";
+import { useSupabaseItems } from "@/hooks/useSupabaseItems";
+import { useSupabaseCategories } from "@/hooks/useSupabaseCategories";
+import { useSupabaseUnits } from "@/hooks/useSupabaseUnits";
 
 export function ItemsManager() {
-    const [items, setItems] = useState<any[]>([]);
-    const [categories, setCategories] = useState<any[]>([]);
-    const [units, setUnits] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedCategory, setSelectedCategory] = useState<string>("all");
-    const [editingItem, setEditingItem] = useState<string | null>(null);
-    const { toast } = useToast();
 
-    const fetchData = async () => {
-        try {
-            setLoading(true);
-            console.log("Carregando dados...");
 
-            // Buscar itens com categorias e unidades
-            const { data: itemsData, error: itemsError } = await supabase
-                .from('items')
-                .select(`
-          *,
-          categories (name),
-          units (name, abbreviation)
-        `);
+    // Usar os hooks corretos que já filtram por empresa
+    const { items, loading: itemsLoading, fetchItems, deleteItem } = useSupabaseItems();
+    const { categories, loading: categoriesLoading } = useSupabaseCategories();
+    const { units, loading: unitsLoading } = useSupabaseUnits();
 
-            if (itemsError) {
-                console.error("Erro ao buscar itens:", itemsError);
-                toast({
-                    title: "Erro",
-                    description: "Não foi possível carregar os itens",
-                    variant: "destructive",
-                });
-            } else {
-                console.log("Itens carregados:", itemsData);
-                setItems(itemsData || []);
-            }
 
-            // Buscar categorias
-            const { data: categoriesData, error: categoriesError } = await supabase
-                .from('categories')
-                .select('*')
-                .order('name');
+    const loading = itemsLoading || categoriesLoading || unitsLoading;
 
-            if (categoriesError) {
-                console.error("Erro ao buscar categorias:", categoriesError);
-            } else {
-                console.log("Categorias carregadas:", categoriesData);
-                setCategories(categoriesData || []);
-            }
 
-            // Buscar unidades
-            const { data: unitsData, error: unitsError } = await supabase
-                .from('units')
-                .select('*')
-                .order('name');
 
-            if (unitsError) {
-                console.error("Erro ao buscar unidades:", unitsError);
-            } else {
-                console.log("Unidades carregadas:", unitsData);
-                setUnits(unitsData || []);
-            }
 
-        } catch (error) {
-            console.error("Erro geral:", error);
-            toast({
-                title: "Erro de Conexão",
-                description: "Verifique sua conexão com a internet",
-                variant: "destructive",
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const deleteItem = async (itemId: string) => {
-        try {
-            const { error } = await supabase
-                .from('items')
-                .delete()
-                .eq('id', itemId);
-
-            if (error) {
-                console.error("Erro ao excluir item:", error);
-                toast({
-                    title: "Erro",
-                    description: "Não foi possível excluir o item",
-                    variant: "destructive",
-                });
-                return false;
-            }
-
-            toast({
-                title: "Sucesso",
-                description: "Item excluído com sucesso",
-            });
-
-            // Recarregar dados
-            await fetchData();
-            return true;
-        } catch (error) {
-            console.error("Erro na conexão:", error);
-            return false;
-        }
-    };
-
-    useEffect(() => {
-        fetchData();
-    }, []);
 
     const filteredItems = items.filter(item => {
         const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -176,7 +85,7 @@ export function ItemsManager() {
                         Visualize, edite e gerencie todos os itens do seu estoque
                     </CardDescription>
                     <div className="flex justify-end">
-                        <Button variant="outline" size="sm" onClick={fetchData}>
+                        <Button variant="outline" size="sm" onClick={fetchItems}>
                             <RefreshCw className="h-4 w-4 mr-2" />
                             Atualizar
                         </Button>
@@ -318,7 +227,6 @@ export function ItemsManager() {
                                                                 <Button
                                                                     variant="outline"
                                                                     size="sm"
-                                                                    onClick={() => setEditingItem(item.id)}
                                                                 >
                                                                     <Edit className="h-4 w-4" />
                                                                 </Button>
@@ -333,8 +241,7 @@ export function ItemsManager() {
                                                                 <EditItemForm
                                                                     item={item}
                                                                     onSuccess={() => {
-                                                                        setEditingItem(null);
-                                                                        fetchData();
+                                                                        fetchItems();
                                                                     }}
                                                                 />
                                                             </DialogContent>
