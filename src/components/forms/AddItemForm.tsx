@@ -10,6 +10,7 @@ import { useSupabaseUnits } from "@/hooks/useSupabaseUnits";
 import { useSupabaseItems } from "@/hooks/useSupabaseItems";
 import { useToast } from "@/hooks/use-toast";
 import { QuantityInput } from "@/components/ui/quantity-input";
+import { ItemNameInput } from "./ItemNameInput";
 
 export function AddItemForm() {
   const [formData, setFormData] = useState({
@@ -68,12 +69,10 @@ export function AddItemForm() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nome do Item *</Label>
-              <Input
-                id="name"
+              <ItemNameInput
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(value) => setFormData({ ...formData, name: value })}
                 placeholder="Digite o nome do item"
-                required
               />
             </div>
 
