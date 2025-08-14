@@ -3,8 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { mockItems, categories } from "@/data/mockData";
 
-
-
 const COLORS = [
   'hsl(var(--primary))',
   'hsl(var(--secondary))', 
@@ -37,10 +35,6 @@ export function StockChart() {
 
   // Debug log
   console.log("Top 4 categories by stock:", stockByCategory);
-
-
-
-
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -99,11 +93,16 @@ export function StockChart() {
               <Legend 
                 verticalAlign="bottom" 
                 height={36}
-                formatter={(value, entry) => (
-                  <span style={{ color: entry.color }}>
-                    {value} ({entry.payload?.percentage}%)
-                  </span>
-                )}
+                formatter={(value, entry) => {
+                  // Find the corresponding data entry to get the percentage
+                  const dataEntry = stockByCategory.find(item => item.name === value);
+                  const percentage = dataEntry?.percentage || "0";
+                  return (
+                    <span style={{ color: entry.color }}>
+                      {value} ({percentage}%)
+                    </span>
+                  );
+                }}
               />
             </PieChart>
           </ResponsiveContainer>

@@ -14,42 +14,50 @@ export const useCompanyUsers = (companyId?: string) => {
     if (!user || !companyId) return;
 
     try {
-      const { data, error } = await supabase
+      // First get company users
+      const { data: companyUsersData, error: companyUsersError } = await supabase
         .from('company_users')
-        .select(`
-          id,
-          user_id,
-          company_id,
-          permission_type,
-          created_at,
-          created_by,
-          is_active,
-          profiles!inner (
-            email,
-            full_name
-          )
-        `)
+        .select('*')
         .eq('company_id', companyId)
         .eq('is_active', true);
 
-      if (error) throw error;
+      if (companyUsersError) throw companyUsersError;
 
-      // Transformar os dados para o formato esperado
-      const users = data?.map(item => ({
-        id: item.id,
-        company_id: item.company_id,
-        user_id: item.user_id,
-        permission_type: item.permission_type as 'read' | 'write' | 'admin',
-        created_at: item.created_at,
-        created_by: item.created_by,
-        is_active: item.is_active,
-        user: {
-          email: item.profiles.email,
-          profiles: {
-            full_name: item.profiles.full_name
+      if (!companyUsersData || companyUsersData.length === 0) {
+        setCompanyUsers([]);
+        return;
+      }
+
+      // Get user IDs from company users
+      const userIds = companyUsersData.map(cu => cu.user_id);
+
+      // Get profiles for those users
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .in('id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Combine the data
+      const users = companyUsersData.map(companyUser => {
+        const profile = profilesData?.find(p => p.id === companyUser.user_id);
+        return {
+          id: companyUser.id,
+          company_id: companyUser.company_id,
+          user_id: companyUser.user_id,
+          permission_type: companyUser.permission_type as 'read' | 'write' | 'admin',
+          created_at: companyUser.created_at,
+          created_by: companyUser.created_by,
+          is_active: companyUser.is_active,
+          user: {
+            email: profile?.email || 'Email não encontrado',
+            profiles: {
+              full_name: profile?.full_name || 'Nome não encontrado'
+            }
           }
-        }
-      })) || [];
+        };
+      });
 
       setCompanyUsers(users);
     } catch (error) {
