@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
@@ -43,18 +44,11 @@ export const useCompanies = () => {
     try {
       setLoading(true);
       
-      // Buscar empresas onde o usuário é proprietário OU tem acesso via company_users
-      const { data: ownedCompanies, error: ownedError } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('owner_id', user.id)
-        .eq('is_active', true);
-
-      if (ownedError) throw ownedError;
-
-      const { data: accessibleCompanies, error: accessError } = await supabase
+      // Buscar todas as empresas que o usuário tem acesso (como proprietário ou membro)
+      const { data: companyAccess, error: accessError } = await supabase
         .from('company_users')
         .select(`
+          company_id,
           companies!inner (
             id,
             name,
@@ -71,13 +65,20 @@ export const useCompanies = () => {
 
       if (accessError) throw accessError;
 
-      // Combinar empresas próprias e acessíveis, removendo duplicatas
-      const allCompanies = [
-        ...(ownedCompanies || []),
-        ...(accessibleCompanies?.map(item => item.companies).filter(Boolean) || [])
-      ];
+      // Buscar empresas onde o usuário é proprietário (caso não esteja na tabela company_users)
+      const { data: ownedCompanies, error: ownedError } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('owner_id', user.id)
+        .eq('is_active', true);
 
-      // Remover duplicatas baseado no ID
+      if (ownedError) throw ownedError;
+
+      // Extrair empresas dos acessos
+      const accessibleCompanies = companyAccess?.map(item => item.companies).filter(Boolean) || [];
+
+      // Combinar empresas, removendo duplicatas baseado no ID
+      const allCompanies = [...accessibleCompanies, ...(ownedCompanies || [])];
       const uniqueCompanies = allCompanies.filter((company, index, self) => 
         index === self.findIndex(c => c.id === company.id)
       );
@@ -86,7 +87,7 @@ export const useCompanies = () => {
     } catch (error) {
       console.error('Erro ao buscar empresas:', error);
       toast.error('Erro ao carregar empresas');
-      setCompanies([]); // Definir array vazio em caso de erro
+      setCompanies([]);
     } finally {
       setLoading(false);
     }
@@ -119,6 +120,13 @@ export const useCompanies = () => {
 
   const updateCompany = async (id: string, updates: Partial<Company>) => {
     try {
+      // Verificar se o usuário é proprietário da empresa
+      const company = companies.find(c => c.id === id);
+      if (!company || company.owner_id !== user?.id) {
+        toast.error('Apenas o proprietário pode editar a empresa');
+        return;
+      }
+
       const { error } = await supabase
         .from('companies')
         .update(updates)
@@ -136,6 +144,13 @@ export const useCompanies = () => {
 
   const deleteCompany = async (id: string) => {
     try {
+      // Verificar se o usuário é proprietário da empresa
+      const company = companies.find(c => c.id === id);
+      if (!company || company.owner_id !== user?.id) {
+        toast.error('Apenas o proprietário pode desativar a empresa');
+        return;
+      }
+
       const { error } = await supabase
         .from('companies')
         .update({ is_active: false })
@@ -168,7 +183,7 @@ export const useCompanies = () => {
     return () => {
       mounted = false;
     };
-  }, [user?.id]); // Usar user.id ao invés de user para evitar re-renders desnecessários
+  }, [user?.id]);
 
   return {
     companies,
