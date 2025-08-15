@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -66,6 +67,10 @@ export const CompaniesManager = () => {
     if (window.confirm(`Tem certeza que deseja desativar a empresa "${company.name}"?`)) {
       await deleteCompany(company.id);
     }
+  };
+
+  const canEditCompany = (company: any) => {
+    return isSuperAdmin || company.owner_id === user?.id;
   };
 
   if (loading || superAdminLoading) {
@@ -180,7 +185,7 @@ export const CompaniesManager = () => {
                   Usuários
                 </Button>
                 
-                {isSuperAdmin && (
+                {canEditCompany(company) && (
                   <>
                     <Button
                       variant="outline"
@@ -225,7 +230,7 @@ export const CompaniesManager = () => {
               </Button>
             )}
           </CardContent>
-        </Card>
+        )}
       )}
 
       {/* Dialog de Edição */}

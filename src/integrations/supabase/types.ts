@@ -397,9 +397,80 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_user_to_company: {
+        Args: {
+          p_company_id: string
+          p_permission_type?: Database["public"]["Enums"]["permission_type"]
+          p_user_email: string
+        }
+        Returns: Json
+      }
+      add_user_to_company_by_email: {
+        Args: {
+          p_company_id: string
+          p_permission_type: Database["public"]["Enums"]["permission_type"]
+          p_user_email: string
+        }
+        Returns: Json
+      }
       assign_existing_data_to_admin: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      debug_user_access: {
+        Args: { user_id: string }
+        Returns: {
+          can_select: boolean
+          company_count: number
+          is_member: boolean
+          is_owner: boolean
+          permission_type: Database["public"]["Enums"]["permission_type"]
+          table_name: string
+        }[]
+      }
+      find_user_by_email: {
+        Args: { user_email: string }
+        Returns: {
+          email: string
+          user_id: string
+        }[]
+      }
+      get_all_profiles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          updated_at: string
+        }[]
+      }
+      get_all_user_roles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }[]
+      }
+      get_company_users: {
+        Args: { p_company_id: string }
+        Returns: {
+          company_id: string
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          permission_type: Database["public"]["Enums"]["permission_type"]
+          user_email: string
+          user_full_name: string
+          user_id: string
+        }[]
+      }
+      get_company_users_with_profiles: {
+        Args: { p_company_id: string }
+        Returns: Json
       }
       has_role: {
         Args: {
@@ -411,6 +482,15 @@ export type Database = {
       is_super_admin: {
         Args: { user_id?: string }
         Returns: boolean
+      }
+      list_users_without_company: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          email: string
+          full_name: string
+          user_id: string
+        }[]
       }
     }
     Enums: {

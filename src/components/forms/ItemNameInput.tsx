@@ -1,130 +1,125 @@
 
-import { useState, useEffect, useRef } from "react";
-import { Input } from "@/components/ui/input";
-import { useSupabaseItems } from "@/hooks/useSupabaseItems";
-import { AlertTriangle, Check } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { Input } from '@/components/ui/input';
+import { Command, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useCurrentCompany } from '@/hooks/useCurrentCompany';
+
+interface Item {
+  id: string;
+  name: string;
+  current_stock: number;
+}
 
 interface ItemNameInputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  className?: string;
 }
 
-export function ItemNameInput({ value, onChange, placeholder }: ItemNameInputProps) {
+export const ItemNameInput = ({ value, onChange, placeholder, className }: ItemNameInputProps) => {
+  const [suggestions, setSuggestions] = useState<Item[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [hasExactMatch, setHasExactMatch] = useState(false);
-  const { items } = useSupabaseItems();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
+  const [exactMatch, setExactMatch] = useState<Item | null>(null);
+  const { currentCompany } = useCurrentCompany();
 
-  useEffect(() => {
-    if (value.length >= 2) {
-      // Filtrar itens que começam com o texto digitado
-      const filtered = items
-        .filter(item => 
-          item.name.toLowerCase().includes(value.toLowerCase())
-        )
-        .map(item => item.name)
-        .slice(0, 5); // Limitar a 5 sugestões
-
-      setSuggestions(filtered);
-      
-      // Verificar se existe um item com o nome exato
-      const exactMatch = items.some(item => 
-        item.name.toLowerCase() === value.toLowerCase()
-      );
-      setHasExactMatch(exactMatch);
-      
-      setShowSuggestions(filtered.length > 0);
-    } else {
+  const searchItems = async (searchTerm: string) => {
+    if (!searchTerm.trim() || searchTerm.length < 2 || !currentCompany) {
       setSuggestions([]);
-      setShowSuggestions(false);
-      setHasExactMatch(false);
+      setExactMatch(null);
+      return;
     }
-  }, [value, items]);
 
-  // Fechar sugestões ao clicar fora
+    try {
+      const { data: items, error } = await supabase
+        .from('items')
+        .select('id, name, current_stock')
+        .eq('company_id', currentCompany.id)
+        .ilike('name', `%${searchTerm}%`)
+        .limit(10);
+
+      if (error) throw error;
+
+      setSuggestions(items || []);
+      
+      // Verificar se existe match exato
+      const exact = items?.find(item => 
+        item.name.toLowerCase() === searchTerm.toLowerCase()
+      );
+      setExactMatch(exact || null);
+    } catch (error) {
+      console.error('Erro ao buscar itens:', error);
+      setSuggestions([]);
+      setExactMatch(null);
+    }
+  };
+
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        inputRef.current &&
-        suggestionsRef.current &&
-        !inputRef.current.contains(event.target as Node) &&
-        !suggestionsRef.current.contains(event.target as Node)
-      ) {
-        setShowSuggestions(false);
-      }
-    };
+    const timeoutId = setTimeout(() => {
+      searchItems(value);
+    }, 300);
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    return () => clearTimeout(timeoutId);
+  }, [value, currentCompany]);
 
-  const handleSuggestionClick = (suggestion: string) => {
-    onChange(suggestion);
+  const handleSelectSuggestion = (item: Item) => {
+    onChange(item.name);
     setShowSuggestions(false);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(e.target.value);
-  };
-
-  const handleInputFocus = () => {
-    if (suggestions.length > 0) {
-      setShowSuggestions(true);
-    }
-  };
-
   return (
-    <div className="relative">
-      <div className="relative">
-        <Input
-          ref={inputRef}
-          value={value}
-          onChange={handleInputChange}
-          onFocus={handleInputFocus}
-          placeholder={placeholder}
-          className={`pr-10 ${hasExactMatch ? 'border-orange-500 bg-orange-50' : ''}`}
-        />
-        {value && (
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-            {hasExactMatch ? (
-              <AlertTriangle className="h-4 w-4 text-orange-500" />
-            ) : (
-              <Check className="h-4 w-4 text-green-500" />
-            )}
-          </div>
-        )}
-      </div>
+    <div className="relative space-y-2">
+      <Input
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setShowSuggestions(true);
+        }}
+        onFocus={() => setShowSuggestions(true)}
+        onBlur={() => {
+          // Delay para permitir clique nas sugestões
+          setTimeout(() => setShowSuggestions(false), 200);
+        }}
+        placeholder={placeholder}
+        className={className}
+      />
 
-      {hasExactMatch && (
-        <p className="text-sm text-orange-600 mt-1 flex items-center">
-          <AlertTriangle className="h-3 w-3 mr-1" />
-          Um item com este nome já existe
-        </p>
+      {exactMatch && (
+        <Alert className="border-yellow-200 bg-yellow-50">
+          <AlertTriangle className="h-4 w-4 text-yellow-600" />
+          <AlertDescription className="text-yellow-800">
+            Item "{exactMatch.name}" já existe no estoque (Quantidade: {exactMatch.current_stock})
+          </AlertDescription>
+        </Alert>
       )}
 
       {showSuggestions && suggestions.length > 0 && (
-        <div
-          ref={suggestionsRef}
-          className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-48 overflow-y-auto"
-        >
-          <div className="p-2 text-xs text-gray-500 border-b">
-            Itens existentes:
-          </div>
-          {suggestions.map((suggestion, index) => (
-            <button
-              key={index}
-              type="button"
-              className="w-full text-left px-3 py-2 hover:bg-gray-100 text-sm transition-colors"
-              onClick={() => handleSuggestionClick(suggestion)}
-            >
-              {suggestion}
-            </button>
-          ))}
+        <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+          <Command>
+            <CommandList>
+              <CommandGroup heading="Itens existentes">
+                {suggestions.map((item) => (
+                  <CommandItem
+                    key={item.id}
+                    onSelect={() => handleSelectSuggestion(item)}
+                    className="cursor-pointer"
+                  >
+                    <div className="flex justify-between w-full">
+                      <span>{item.name}</span>
+                      <span className="text-sm text-gray-500">
+                        Estoque: {item.current_stock}
+                      </span>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
         </div>
       )}
     </div>
   );
-}
+};
