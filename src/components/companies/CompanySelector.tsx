@@ -161,12 +161,7 @@ export const CompanySelector = () => {
         </Select>
       </div>
 
-      {userPermission && (
-        <Badge variant={getPermissionVariant(userPermission) as any}>
-          {getPermissionIcon(userPermission)}
-          <span className="ml-1">{getPermissionLabel(userPermission)}</span>
-        </Badge>
-      )}
+
     </div>
   );
 };
