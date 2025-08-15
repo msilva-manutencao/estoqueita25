@@ -36,7 +36,7 @@ export function ItemsManager() {
         const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = selectedCategory === "all" || item.category_id === selectedCategory;
         return matchesSearch && matchesCategory;
-    });
+    }).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
     const handleDeleteItem = async (itemId: string, itemName: string) => {
         if (window.confirm(`Tem certeza que deseja excluir o item "${itemName}"?`)) {
@@ -151,8 +151,8 @@ export function ItemsManager() {
                         </Card>
                     </div>
 
-                    {/* Tabela de itens */}
-                    <div className="border rounded-lg">
+                    {/* Lista de itens - Desktop: Tabela, Mobile: Cards */}
+                    <div className="hidden md:block border rounded-lg">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -262,6 +262,120 @@ export function ItemsManager() {
                                 )}
                             </TableBody>
                         </Table>
+                    </div>
+
+                    {/* Cards para Mobile */}
+                    <div className="md:hidden space-y-4">
+                        {filteredItems.length === 0 ? (
+                            <Card>
+                                <CardContent className="p-8">
+                                    <div className="flex flex-col items-center space-y-2">
+                                        <Package className="h-8 w-8 text-muted-foreground" />
+                                        <p className="text-muted-foreground text-center">
+                                            {searchTerm || selectedCategory !== "all"
+                                                ? "Nenhum item encontrado com os filtros aplicados"
+                                                : "Nenhum item cadastrado"}
+                                        </p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            filteredItems.map((item) => {
+                                const stockStatus = getStockStatus(item.current_stock, item.minimum_stock);
+                                const category = categories.find(c => c.id === item.category_id);
+                                const unit = units.find(u => u.id === item.unit_id);
+                                const expiringSoon = isExpiringSoon(item.expiry_date);
+
+                                return (
+                                    <Card key={item.id} className="border">
+                                        <CardContent className="p-4">
+                                            <div className="space-y-3">
+                                                {/* Header com nome e ações */}
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex-1">
+                                                        <h3 className="font-semibold text-lg">{item.name}</h3>
+                                                        <p className="text-sm text-muted-foreground">{category?.name || "N/A"}</p>
+                                                    </div>
+                                                    <div className="flex items-center space-x-2 ml-2">
+                                                        <Dialog>
+                                                            <DialogTrigger asChild>
+                                                                <Button variant="outline" size="sm">
+                                                                    <Edit className="h-4 w-4" />
+                                                                </Button>
+                                                            </DialogTrigger>
+                                                            <DialogContent className="max-w-md">
+                                                                <DialogHeader>
+                                                                    <DialogTitle>Editar Item</DialogTitle>
+                                                                    <DialogDescription>
+                                                                        Edite as informações do item "{item.name}"
+                                                                    </DialogDescription>
+                                                                </DialogHeader>
+                                                                <EditItemForm
+                                                                    item={item}
+                                                                    onSuccess={() => {
+                                                                        fetchItems();
+                                                                    }}
+                                                                />
+                                                            </DialogContent>
+                                                        </Dialog>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleDeleteItem(item.id, item.name)}
+                                                            className="text-destructive hover:text-destructive"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Grid com informações */}
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <p className="text-sm text-muted-foreground">Estoque Atual</p>
+                                                        <p className="font-medium">
+                                                            {item.current_stock} {unit?.abbreviation || ""}
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm text-muted-foreground">Estoque Mínimo</p>
+                                                        <p className="font-medium">
+                                                            {item.minimum_stock} {unit?.abbreviation || ""}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Status e Validade */}
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center space-x-2">
+                                                        <Badge variant={stockStatus.color as any}>
+                                                            {stockStatus.text}
+                                                        </Badge>
+                                                        {item.current_stock <= item.minimum_stock && (
+                                                            <AlertTriangle className="h-4 w-4 text-destructive" />
+                                                        )}
+                                                    </div>
+
+                                                    {item.expiry_date ? (
+                                                        <div className="flex items-center space-x-2">
+                                                            <Calendar className={`h-4 w-4 ${expiringSoon ? "text-orange-600" : "text-muted-foreground"}`} />
+                                                            <span className={`text-sm ${expiringSoon ? "text-orange-600" : ""}`}>
+                                                                Validade: {format(new Date(item.expiry_date), "dd/MM/yyyy", { locale: ptBR })}
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center space-x-2">
+                                                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                                                            <span className="text-sm text-muted-foreground">Sem validade</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                );
+                            })
+                        )}
                     </div>
                 </CardContent>
             </Card>

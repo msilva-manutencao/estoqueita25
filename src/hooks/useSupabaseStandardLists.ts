@@ -274,6 +274,54 @@ export function useSupabaseStandardLists() {
     }
   };
 
+  const addStandardListItem = async (listId: string, itemId: string, quantity: number) => {
+    try {
+      console.log('Adicionando item à lista:', { listId, itemId, quantity });
+
+      // Verificar se o item já existe na lista
+      const existingList = standardLists.find(l => l.id === listId);
+      const existingItem = existingList?.items.find(item => item.item_id === itemId);
+
+      if (existingItem) {
+        toast({
+          title: "Erro",
+          description: "Este item já está na lista",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      const { error } = await supabase
+        .from('standard_list_items')
+        .insert({
+          standard_list_id: listId,
+          item_id: itemId,
+          quantity: quantity
+        });
+
+      if (error) {
+        console.error('Erro ao adicionar item:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível adicionar o item",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      toast({
+        title: "Sucesso",
+        description: "Item adicionado com sucesso",
+      });
+
+      await fetchStandardLists();
+      return true;
+    } catch (error) {
+      console.error('Erro na conexão:', error);
+      return false;
+    }
+  };
+
   const executeBulkWithdraw = async (listId: string) => {
     try {
       console.log('Executando baixa em lote para lista:', listId);
@@ -311,7 +359,9 @@ export function useSupabaseStandardLists() {
         item_id: item.item_id,
         quantity: item.quantity,
         movement_type: 'saida' as const,
-        description: `Baixa em lote - Lista: ${list.name}`
+        description: `Baixa em lote - Lista: ${list.name}`,
+        company_id: currentCompany.id,
+        date: new Date().toISOString()
       }));
 
       const { error } = await supabase
@@ -352,6 +402,7 @@ export function useSupabaseStandardLists() {
     deleteStandardList,
     updateStandardListItem,
     removeStandardListItem,
+    addStandardListItem,
     executeBulkWithdraw
   };
 }

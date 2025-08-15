@@ -5,24 +5,34 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Users, Shield, Database, AlertCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Users, Shield, Database, AlertCircle, Edit, Trash2, Building2, UserPlus } from 'lucide-react';
 import { useUserRoles } from '@/hooks/useUserRoles';
 import { useAuth } from '@/hooks/useAuth';
+import { useSuperAdmin } from '@/hooks/useSuperAdmin';
+import { useCompanies } from '@/hooks/useCompanies';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export function UserManagement() {
   const { userRoles, userProfiles, loading, operationLoading, fetchUserRoles, assignExistingDataToAdmin } = useUserRoles();
   const { user } = useAuth();
-  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
-
-  useEffect(() => {
-    const checkRole = async () => {
-      if (user) {
-        const role = userRoles.find(ur => ur.user_id === user.id)?.role || null;
-        setCurrentUserRole(role);
-      }
-    };
-    checkRole();
-  }, [user, userRoles]);
+  const { isSuperAdmin, loading: superAdminLoading } = useSuperAdmin();
+  const { companies } = useCompanies();
+  
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isCompanyDialogOpen, setIsCompanyDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedCompany, setSelectedCompany] = useState('');
+  const [selectedPermission, setSelectedPermission] = useState<'read' | 'write' | 'admin'>('read');
+  const [editFormData, setEditFormData] = useState({
+    full_name: '',
+    role: 'user' as 'admin' | 'user'
+  });
 
   const handleAssignData = async () => {
     const success = await assignExistingDataToAdmin();
@@ -42,7 +52,134 @@ export function UserManagement() {
     );
   };
 
-  if (loading) {
+  const handleEditUser = (profile: any) => {
+    setEditingUser(profile);
+    setEditFormData({
+      full_name: profile.full_name || '',
+      role: userRoles.find(ur => ur.user_id === profile.id)?.role || 'user'
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveUser = async () => {
+    if (!editingUser) return;
+
+    try {
+      // Atualizar perfil
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ full_name: editFormData.full_name })
+        .eq('id', editingUser.id);
+
+      if (profileError) throw profileError;
+
+      // Atualizar ou criar role
+      const existingRole = userRoles.find(ur => ur.user_id === editingUser.id);
+      
+      if (existingRole) {
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .update({ role: editFormData.role })
+          .eq('user_id', editingUser.id);
+        
+        if (roleError) throw roleError;
+      } else {
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: editingUser.id,
+            role: editFormData.role
+          });
+        
+        if (roleError) throw roleError;
+      }
+
+      toast.success('Usuário atualizado com sucesso!');
+      setIsEditDialogOpen(false);
+      setEditingUser(null);
+      await fetchUserRoles();
+    } catch (error) {
+      console.error('Erro ao atualizar usuário:', error);
+      toast.error('Erro ao atualizar usuário');
+    }
+  };
+
+  const handleDeleteUser = async (profile: any) => {
+    if (profile.email === 'moisestj86@gmail.com') {
+      toast.error('Não é possível excluir o super admin');
+      return;
+    }
+
+    if (window.confirm(`Tem certeza que deseja excluir o usuário ${profile.email}?`)) {
+      try {
+        // Remover das empresas
+        const { error: companyError } = await supabase
+          .from('company_users')
+          .delete()
+          .eq('user_id', profile.id);
+
+        if (companyError) throw companyError;
+
+        // Remover role
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', profile.id);
+
+        if (roleError) throw roleError;
+
+        // Remover perfil
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', profile.id);
+
+        if (profileError) throw profileError;
+
+        toast.success('Usuário excluído com sucesso!');
+        await fetchUserRoles();
+      } catch (error) {
+        console.error('Erro ao excluir usuário:', error);
+        toast.error('Erro ao excluir usuário');
+      }
+    }
+  };
+
+  const handleAddToCompany = (profile: any) => {
+    setSelectedUser(profile);
+    setIsCompanyDialogOpen(true);
+  };
+
+  const handleSaveToCompany = async () => {
+    if (!selectedUser || !selectedCompany) {
+      toast.error('Selecione uma empresa');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('company_users')
+        .insert({
+          user_id: selectedUser.id,
+          company_id: selectedCompany,
+          permission_type: selectedPermission,
+          created_by: user?.id
+        });
+
+      if (error) throw error;
+
+      toast.success('Usuário adicionado à empresa com sucesso!');
+      setIsCompanyDialogOpen(false);
+      setSelectedUser(null);
+      setSelectedCompany('');
+      setSelectedPermission('read');
+    } catch (error) {
+      console.error('Erro ao adicionar usuário à empresa:', error);
+      toast.error('Erro ao adicionar usuário à empresa');
+    }
+  };
+
+  if (loading || superAdminLoading) {
     return (
       <div className="space-y-6">
         <div className="text-center py-8">
@@ -52,12 +189,12 @@ export function UserManagement() {
     );
   }
 
-  if (currentUserRole !== 'admin') {
+  if (!isSuperAdmin) {
     return (
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Você não tem permissão para acessar esta área. Apenas administradores podem gerenciar usuários.
+          Você não tem permissão para acessar esta área. Apenas o Super Admin pode gerenciar usuários.
         </AlertDescription>
       </Alert>
     );
@@ -100,21 +237,7 @@ export function UserManagement() {
               </Badge>
             </div>
             
-            {hasAdminUsers && (
-              <div className="space-y-2">
-                <Button 
-                  onClick={handleAssignData}
-                  disabled={operationLoading}
-                  className="w-full"
-                >
-                  <Database className="h-4 w-4 mr-2" />
-                  {operationLoading ? 'Vinculando...' : 'Vincular Dados Existentes ao Admin'}
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Esta ação vincula todos os dados existentes no sistema ao primeiro administrador.
-                </p>
-              </div>
-            )}
+
           </div>
         </CardContent>
       </Card>
@@ -134,11 +257,14 @@ export function UserManagement() {
                     <TableHead>Nome</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Data de Cadastro</TableHead>
+                    <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {userProfiles.map((profile) => {
                     const userRole = userRoles.find(ur => ur.user_id === profile.id);
+                    const isSuperAdminUser = profile.email === 'moisestj86@gmail.com';
+                    
                     return (
                       <TableRow key={profile.id}>
                         <TableCell className="font-medium">{profile.email}</TableCell>
@@ -150,6 +276,34 @@ export function UserManagement() {
                         </TableCell>
                         <TableCell>
                           {new Date(profile.created_at).toLocaleDateString('pt-BR')}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditUser(profile)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleAddToCompany(profile)}
+                            >
+                              <Building2 className="h-4 w-4" />
+                            </Button>
+                            {!isSuperAdminUser && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteUser(profile)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -176,6 +330,99 @@ export function UserManagement() {
           </AlertDescription>
         </Alert>
       )}
+
+      {/* Dialog para Editar Usuário */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogDescription>
+              Edite as informações do usuário {editingUser?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="fullName">Nome Completo</Label>
+              <Input
+                id="fullName"
+                value={editFormData.full_name}
+                onChange={(e) => setEditFormData({...editFormData, full_name: e.target.value})}
+                placeholder="Digite o nome completo"
+              />
+            </div>
+            <div>
+              <Label htmlFor="role">Role</Label>
+              <Select value={editFormData.role} onValueChange={(value: any) => setEditFormData({...editFormData, role: value})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">Usuário</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveUser}>
+                Salvar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para Vincular Usuário à Empresa */}
+      <Dialog open={isCompanyDialogOpen} onOpenChange={setIsCompanyDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Vincular Usuário à Empresa</DialogTitle>
+            <DialogDescription>
+              Adicione o usuário {selectedUser?.email} a uma empresa
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="company">Empresa</Label>
+              <Select value={selectedCompany} onValueChange={setSelectedCompany}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma empresa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {companies.map((company) => (
+                    <SelectItem key={company.id} value={company.id}>
+                      {company.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="permission">Permissão</Label>
+              <Select value={selectedPermission} onValueChange={(value: any) => setSelectedPermission(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="read">Visualizador</SelectItem>
+                  <SelectItem value="write">Editor</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setIsCompanyDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveToCompany}>
+                Adicionar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

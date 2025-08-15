@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSupabaseCategories } from "@/hooks/useSupabaseCategories";
 import { useSupabaseUnits } from "@/hooks/useSupabaseUnits";
 import { useSupabaseItems } from "@/hooks/useSupabaseItems";
+import { Plus, Minus } from "lucide-react";
 
 interface EditItemFormProps {
   item: any;
@@ -183,28 +184,70 @@ export function EditItemForm({ item, onSuccess, onSave, onCancel }: EditItemForm
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="currentStock">Quantidade em Estoque</Label>
-          <Input
-            id="currentStock"
-            type="number"
-            value={formData.current_stock}
-            onChange={(e) => setFormData({...formData, current_stock: Number(e.target.value)})}
-            min="0"
-            step="0.1"
-            required
-          />
+          <div className="flex items-center space-x-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setFormData({...formData, current_stock: Math.max(0, formData.current_stock - 1)})}
+              className="h-10 w-10 p-0"
+            >
+              <Minus className="h-4 w-4" />
+            </Button>
+            <Input
+              id="currentStock"
+              type="number"
+              value={formData.current_stock}
+              onChange={(e) => setFormData({...formData, current_stock: Number(e.target.value)})}
+              min="0"
+              step="0.1"
+              required
+              className="text-center"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setFormData({...formData, current_stock: formData.current_stock + 1})}
+              className="h-10 w-10 p-0"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="minimumStock">Estoque Mínimo</Label>
-          <Input
-            id="minimumStock"
-            type="number"
-            value={formData.minimum_stock}
-            onChange={(e) => setFormData({...formData, minimum_stock: Number(e.target.value)})}
-            min="0"
-            step="0.1"
-            required
-          />
+          <div className="flex items-center space-x-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setFormData({...formData, minimum_stock: Math.max(0, formData.minimum_stock - 1)})}
+              className="h-10 w-10 p-0"
+            >
+              <Minus className="h-4 w-4" />
+            </Button>
+            <Input
+              id="minimumStock"
+              type="number"
+              value={formData.minimum_stock}
+              onChange={(e) => setFormData({...formData, minimum_stock: Number(e.target.value)})}
+              min="0"
+              step="0.1"
+              required
+              className="text-center"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setFormData({...formData, minimum_stock: formData.minimum_stock + 1})}
+              className="h-10 w-10 p-0"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 

@@ -44,46 +44,55 @@ export const useCompanies = () => {
     try {
       setLoading(true);
       
-      // Buscar todas as empresas que o usuário tem acesso (como proprietário ou membro)
-      const { data: companyAccess, error: accessError } = await supabase
+      // Verificar se é super admin
+      const { data: isSuperAdmin } = await supabase.rpc('is_super_admin');
+      
+      if (isSuperAdmin) {
+        // Super admin tem acesso a todas as empresas
+        const { data: companies, error } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('is_active', true);
+
+        if (error) throw error;
+        setCompanies((companies || []).sort((a, b) => a.name.localeCompare(b.name)));
+        return;
+      }
+      
+      // Buscar IDs das empresas onde o usuário é membro
+      const { data: companyAccess } = await supabase
         .from('company_users')
-        .select(`
-          company_id,
-          companies!inner (
-            id,
-            name,
-            description,
-            created_at,
-            updated_at,
-            owner_id,
-            is_active
-          )
-        `)
+        .select('company_id')
         .eq('user_id', user.id)
-        .eq('is_active', true)
-        .eq('companies.is_active', true);
-
-      if (accessError) throw accessError;
-
-      // Buscar empresas onde o usuário é proprietário (caso não esteja na tabela company_users)
-      const { data: ownedCompanies, error: ownedError } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('owner_id', user.id)
         .eq('is_active', true);
 
-      if (ownedError) throw ownedError;
+      const memberCompanyIds = companyAccess?.map(item => item.company_id) || [];
 
-      // Extrair empresas dos acessos
-      const accessibleCompanies = companyAccess?.map(item => item.companies).filter(Boolean) || [];
+      // Criar array com todos os IDs únicos (proprietário + membro)
+      const allCompanyIds = new Set([...memberCompanyIds]);
+      
+      // Buscar empresas onde é proprietário
+      const { data: ownedCompanies } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('is_active', true)
+        .eq('owner_id', user.id);
 
-      // Combinar empresas, removendo duplicatas baseado no ID
-      const allCompanies = [...accessibleCompanies, ...(ownedCompanies || [])];
-      const uniqueCompanies = allCompanies.filter((company, index, self) => 
-        index === self.findIndex(c => c.id === company.id)
-      );
+      // Adicionar IDs das empresas próprias ao conjunto
+      (ownedCompanies || []).forEach(company => {
+        allCompanyIds.add(company.id);
+      });
 
-      setCompanies(uniqueCompanies.sort((a, b) => a.name.localeCompare(b.name)));
+      // Buscar todas as empresas pelos IDs únicos
+      const { data: companies, error } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('is_active', true)
+        .in('id', Array.from(allCompanyIds));
+
+      if (error) throw error;
+
+      setCompanies((companies || []).sort((a, b) => a.name.localeCompare(b.name)));
     } catch (error) {
       console.error('Erro ao buscar empresas:', error);
       toast.error('Erro ao carregar empresas');
@@ -120,11 +129,16 @@ export const useCompanies = () => {
 
   const updateCompany = async (id: string, updates: Partial<Company>) => {
     try {
-      // Verificar se o usuário é proprietário da empresa
-      const company = companies.find(c => c.id === id);
-      if (!company || company.owner_id !== user?.id) {
-        toast.error('Apenas o proprietário pode editar a empresa');
-        return;
+      // Verificar se é super admin
+      const { data: isSuperAdmin } = await supabase.rpc('is_super_admin');
+      
+      if (!isSuperAdmin) {
+        // Verificar se o usuário é proprietário da empresa
+        const company = companies.find(c => c.id === id);
+        if (!company || company.owner_id !== user?.id) {
+          toast.error('Apenas o proprietário pode editar a empresa');
+          return;
+        }
       }
 
       const { error } = await supabase
@@ -144,11 +158,16 @@ export const useCompanies = () => {
 
   const deleteCompany = async (id: string) => {
     try {
-      // Verificar se o usuário é proprietário da empresa
-      const company = companies.find(c => c.id === id);
-      if (!company || company.owner_id !== user?.id) {
-        toast.error('Apenas o proprietário pode desativar a empresa');
-        return;
+      // Verificar se é super admin
+      const { data: isSuperAdmin } = await supabase.rpc('is_super_admin');
+      
+      if (!isSuperAdmin) {
+        // Verificar se o usuário é proprietário da empresa
+        const company = companies.find(c => c.id === id);
+        if (!company || company.owner_id !== user?.id) {
+          toast.error('Apenas o proprietário pode desativar a empresa');
+          return;
+        }
       }
 
       const { error } = await supabase

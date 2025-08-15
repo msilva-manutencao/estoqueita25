@@ -29,28 +29,55 @@ export function useUserRoles() {
   const fetchUserRoles = async () => {
     try {
       setLoading(true);
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      
+      // Verificar se é super admin - sempre buscar todos os dados para super admin
+      const isSuperAdmin = user?.email === 'moisestj86@gmail.com';
+      
+      if (isSuperAdmin) {
+        console.log('Usuário é super admin, buscando todos os dados...');
+        
+        // Super admin vê todos os usuários e roles - usar RPC para contornar RLS
+        const { data: profiles, error: profilesError } = await supabase.rpc('get_all_profiles');
+        const { data: roles, error: rolesError } = await supabase.rpc('get_all_user_roles');
 
-      if (rolesError) {
-        console.error('Erro ao buscar roles:', rolesError);
-        return;
+        if (rolesError) {
+          console.error('Erro ao buscar roles:', rolesError);
+        }
+
+        if (profilesError) {
+          console.error('Erro ao buscar perfis:', profilesError);
+        }
+
+        console.log('Profiles encontrados:', profiles?.length || 0);
+        console.log('Roles encontrados:', roles?.length || 0);
+
+        setUserRoles(roles || []);
+        setUserProfiles(profiles || []);
+      } else {
+        // Usuários normais veem apenas dados limitados
+        const { data: roles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('*')
+          .eq('user_id', user?.id)
+          .order('created_at', { ascending: false });
+
+        if (rolesError) {
+          console.error('Erro ao buscar roles:', rolesError);
+        }
+
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user?.id)
+          .order('created_at', { ascending: false });
+
+        if (profilesError) {
+          console.error('Erro ao buscar perfis:', profilesError);
+        }
+
+        setUserRoles(roles || []);
+        setUserProfiles(profiles || []);
       }
-
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (profilesError) {
-        console.error('Erro ao buscar perfis:', profilesError);
-        return;
-      }
-
-      setUserRoles(roles || []);
-      setUserProfiles(profiles || []);
     } catch (error) {
       console.error('Erro na conexão:', error);
     } finally {

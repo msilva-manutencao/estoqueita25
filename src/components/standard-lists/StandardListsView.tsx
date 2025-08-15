@@ -19,7 +19,8 @@ export function StandardListsView({ onCreateNew, onEdit }: StandardListsViewProp
     deleteStandardList, 
     executeBulkWithdraw,
     updateStandardListItem,
-    removeStandardListItem
+    removeStandardListItem,
+    addStandardListItem
   } = useSupabaseStandardLists();
   
   const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -54,6 +55,10 @@ export function StandardListsView({ onCreateNew, onEdit }: StandardListsViewProp
 
   const handleRemoveItem = async (listId: string, itemId: string) => {
     await removeStandardListItem(listId, itemId);
+  };
+
+  const handleAddItem = async (listId: string, itemId: string, quantity: number) => {
+    await addStandardListItem(listId, itemId, quantity);
   };
 
   const totalItems = (items: any[]) => {
@@ -194,6 +199,7 @@ export function StandardListsView({ onCreateNew, onEdit }: StandardListsViewProp
         onExecuteBulkWithdraw={handleBulkWithdraw}
         onUpdateItem={handleUpdateItem}
         onRemoveItem={handleRemoveItem}
+        onAddItem={handleAddItem}
       />
     </div>
   );

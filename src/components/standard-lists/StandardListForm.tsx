@@ -158,8 +158,8 @@ export function StandardListForm({ listId, onBack }: StandardListFormProps) {
 
   const totalQuantity = listItems.reduce((total, item) => total + item.quantity, 0);
 
-  // Filter items that have stock > 0
-  const availableItems = items.filter(item => item.current_stock > 0);
+  // Filter items that have stock > 0 and sort alphabetically
+  const availableItems = items.filter(item => item.current_stock > 0).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
   if (itemsLoading || listsLoading) {
     return (

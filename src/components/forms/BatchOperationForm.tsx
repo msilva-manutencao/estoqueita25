@@ -48,7 +48,7 @@ export function BatchOperationForm({ operation, onClose }: BatchOperationFormPro
       (item.categories?.name === selectedCategory);
     const searchMatch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
     return categoryMatch && searchMatch;
-  });
+  }).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
   const handleItemToggle = (item: typeof items[0], checked: boolean) => {
     if (checked) {

@@ -171,18 +171,16 @@ export const CompaniesManager = () => {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                {(company.owner_id === user?.id || isSuperAdmin) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowUsersManager(company.id)}
-                  >
-                    <Users className="h-4 w-4 mr-1" />
-                    Usuários
-                  </Button>
-                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowUsersManager(company.id)}
+                >
+                  <Users className="h-4 w-4 mr-1" />
+                  Usuários
+                </Button>
                 
-                {(company.owner_id === user?.id || isSuperAdmin) && (
+                {isSuperAdmin && (
                   <>
                     <Button
                       variant="outline"

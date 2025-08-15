@@ -12,7 +12,7 @@ interface LowStockModalProps {
 }
 
 export function LowStockModal({ items, open, onOpenChange }: LowStockModalProps) {
-  const lowStockItems = items.filter(item => item.current_stock <= item.minimum_stock);
+  const lowStockItems = items.filter(item => item.current_stock <= item.minimum_stock).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

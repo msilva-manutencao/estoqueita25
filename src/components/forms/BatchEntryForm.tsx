@@ -144,7 +144,7 @@ export function BatchEntryForm() {
                         <SelectValue placeholder="Selecione um item" />
                       </SelectTrigger>
                       <SelectContent>
-                        {items.map((item) => (
+                        {items.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')).map((item) => (
                           <SelectItem key={item.id} value={item.id}>
                             <div className="flex items-center justify-between w-full">
                               <span>{item.name}</span>
