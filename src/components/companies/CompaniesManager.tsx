@@ -230,7 +230,7 @@ export const CompaniesManager = () => {
               </Button>
             )}
           </CardContent>
-        )}
+        </Card>
       )}
 
       {/* Dialog de Edição */}
