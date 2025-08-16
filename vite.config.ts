@@ -28,4 +28,8 @@ export default defineConfig(({ mode }) => ({
     // Desabilita Attribution Reporting API para evitar conflitos com antivírus
     'window.AttributionReporting': 'undefined',
   },
+  optimizeDeps: {
+    include: ['tesseract.js', 'pdfjs-dist'],
+    exclude: ['pdfjs-dist/build/pdf.worker.js']
+  },
 }));

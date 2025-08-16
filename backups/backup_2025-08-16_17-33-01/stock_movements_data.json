@@ -1,0 +1,13 @@
+[
+  {
+    "id": "93a09406-7dab-41aa-b845-66d4312f9ee4",
+    "item_id": "8fa45e95-5ae4-4aba-8064-2f5d13ac9510",
+    "movement_type": "entrada",
+    "quantity": "2.00",
+    "description": "teste",
+    "date": "2025-08-16 19:20:36.671689+00",
+    "created_at": "2025-08-16 19:20:36.671689+00",
+    "user_id": null,
+    "company_id": "d30b82ab-3dfd-4af1-9fe7-73f73949f5d2"
+  }
+]

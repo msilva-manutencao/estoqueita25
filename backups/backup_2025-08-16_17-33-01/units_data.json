@@ -1,0 +1,106 @@
+[
+  {
+    "id": "51208df4-34a4-4e14-8393-dcee11d46d16",
+    "name": "Quilograma",
+    "abbreviation": "kg",
+    "created_at": "2025-08-09 21:15:55.858984+00",
+    "user_id": null,
+    "company_id": "c8c850fd-1e67-4eb4-ad13-109286f22827"
+  },
+  {
+    "id": "afcc8053-b0d1-4f36-a2f4-d1523b9fb275",
+    "name": "Grama",
+    "abbreviation": "g",
+    "created_at": "2025-08-09 21:15:55.858984+00",
+    "user_id": null,
+    "company_id": "c8c850fd-1e67-4eb4-ad13-109286f22827"
+  },
+  {
+    "id": "d92afc86-7bfe-4082-a63e-7a5086cc8cd4",
+    "name": "Litro",
+    "abbreviation": "l",
+    "created_at": "2025-08-09 21:15:55.858984+00",
+    "user_id": null,
+    "company_id": "c8c850fd-1e67-4eb4-ad13-109286f22827"
+  },
+  {
+    "id": "dd583130-6b3f-474c-a7f8-cc336d3e10ce",
+    "name": "Mililitro",
+    "abbreviation": "ml",
+    "created_at": "2025-08-09 21:15:55.858984+00",
+    "user_id": null,
+    "company_id": "c8c850fd-1e67-4eb4-ad13-109286f22827"
+  },
+  {
+    "id": "1da14747-b2b1-4d99-b97b-2ebb84f6ec1c",
+    "name": "Unidade",
+    "abbreviation": "unidade",
+    "created_at": "2025-08-09 21:15:55.858984+00",
+    "user_id": null,
+    "company_id": "c8c850fd-1e67-4eb4-ad13-109286f22827"
+  },
+  {
+    "id": "7152c9f6-c7b8-4e83-91d0-d9d6821ab009",
+    "name": "Pacote",
+    "abbreviation": "pacote",
+    "created_at": "2025-08-09 21:15:55.858984+00",
+    "user_id": null,
+    "company_id": "c8c850fd-1e67-4eb4-ad13-109286f22827"
+  },
+  {
+    "id": "4a3260aa-438d-40c2-810a-07eaeba2cb03",
+    "name": "Caixa",
+    "abbreviation": "caixa",
+    "created_at": "2025-08-09 21:15:55.858984+00",
+    "user_id": null,
+    "company_id": "c8c850fd-1e67-4eb4-ad13-109286f22827"
+  },
+  {
+    "id": "337837d9-f5cf-4b87-b563-1cf85f18da27",
+    "name": "Lata",
+    "abbreviation": "lata",
+    "created_at": "2025-08-09 21:15:55.858984+00",
+    "user_id": null,
+    "company_id": "c8c850fd-1e67-4eb4-ad13-109286f22827"
+  },
+  {
+    "id": "61ef934a-b942-455e-be00-b6c76d67bd35",
+    "name": "Garrafa",
+    "abbreviation": "garrafa",
+    "created_at": "2025-08-09 21:15:55.858984+00",
+    "user_id": null,
+    "company_id": "c8c850fd-1e67-4eb4-ad13-109286f22827"
+  },
+  {
+    "id": "8bff5080-03b6-416d-9a0f-24a97094ffde",
+    "name": "Balde",
+    "abbreviation": "BD",
+    "created_at": "2025-08-12 13:54:10.774594+00",
+    "user_id": null,
+    "company_id": "c8c850fd-1e67-4eb4-ad13-109286f22827"
+  },
+  {
+    "id": "57c662f3-693a-42c5-b953-551e22074d90",
+    "name": "Peça",
+    "abbreviation": "pç",
+    "created_at": "2025-08-14 11:10:56.418498+00",
+    "user_id": null,
+    "company_id": "d30b82ab-3dfd-4af1-9fe7-73f73949f5d2"
+  },
+  {
+    "id": "dcd01fa5-cbef-4f30-ae62-de238f68dc24",
+    "name": "Caixa",
+    "abbreviation": "cx",
+    "created_at": "2025-08-14 11:10:56.418498+00",
+    "user_id": null,
+    "company_id": "d30b82ab-3dfd-4af1-9fe7-73f73949f5d2"
+  },
+  {
+    "id": "a874c029-1527-4e10-8479-43c183650a70",
+    "name": "Pacote",
+    "abbreviation": "pct",
+    "created_at": "2025-08-14 11:10:56.418498+00",
+    "user_id": null,
+    "company_id": "d30b82ab-3dfd-4af1-9fe7-73f73949f5d2"
+  }
+]

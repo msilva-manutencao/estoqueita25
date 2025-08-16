@@ -21,7 +21,8 @@ import {
   Users,
   Building2,
   Crown,
-  LogOut
+  LogOut,
+  Receipt
 } from "lucide-react";
 
 interface NavigationProps {
@@ -40,6 +41,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
     { id: "withdraw", label: "Retirar Item", icon: Minus },
     { id: "batch-entry", label: "Entrada em Lote", icon: ArrowDownToLine },
     { id: "batch-exit", label: "Saída em Lote", icon: ArrowUpFromLine },
+    { id: "invoice", label: "Nota Fiscal", icon: Receipt },
     { id: "items", label: "Gerenciar Itens", icon: Package },
     { id: "categories", label: "Categorias", icon: Tag },
     { id: "units", label: "Unidades", icon: Ruler },

@@ -1,0 +1,15 @@
+[
+  {
+    "id": "1e5108d6-17b0-46df-8f65-0b8399dc4b4c",
+    "name": "teste",
+    "category_id": "3937aae9-6be0-48bb-a6cb-a28b43c89d7b",
+    "unit_id": "dcd01fa5-cbef-4f30-ae62-de238f68dc24",
+    "current_stock": "1.00",
+    "minimum_stock": "0.00",
+    "expiry_date": "2025-08-14",
+    "created_at": "2025-08-14 13:03:40.953307+00",
+    "updated_at": "2025-08-14 13:03:40.953307+00",
+    "user_id": null,
+    "company_id": "d30b82ab-3dfd-4af1-9fe7-73f73949f5d2"
+  }
+]

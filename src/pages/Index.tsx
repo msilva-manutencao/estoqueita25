@@ -17,6 +17,7 @@ import { CompaniesManager } from "@/components/companies/CompaniesManager";
 import { SuperAdminPanel } from "@/components/admin/SuperAdminPanel";
 import { NoCompanySelected } from "@/components/companies/NoCompanySelected";
 import { NoCompanyAccess } from "@/components/companies/NoCompanyAccess";
+import { InvoiceManager } from "@/components/invoice/InvoiceManager";
 import UsersPage from "@/pages/UsersPage";
 
 import { AuthPage } from "@/components/auth/AuthPage";
@@ -147,6 +148,15 @@ export default function Index() {
         return <BatchEntryForm />;
       case "batch-exit":
         return <BatchExitForm />;
+      case "invoice":
+        return (
+          <div>
+            <div className="text-center mb-6">
+              <h1 className="text-3xl font-bold">Nota Fiscal</h1>
+            </div>
+            <InvoiceManager />
+          </div>
+        );
       case "items":
         return <ItemsManager />;
       case "categories":
