@@ -21,6 +21,7 @@ export const AddItemForm = ({ onSuccess }: AddItemFormProps) => {
     category_id: '',
     unit_id: '',
     minimum_stock: 10,
+    current_stock: 0,
     expiry_date: '',
   });
 
@@ -65,6 +66,7 @@ export const AddItemForm = ({ onSuccess }: AddItemFormProps) => {
         category_id: '',
         unit_id: '',
         minimum_stock: 10,
+        current_stock: 0,
         expiry_date: '',
       });
       onSuccess?.();
@@ -129,6 +131,18 @@ export const AddItemForm = ({ onSuccess }: AddItemFormProps) => {
           step="0.01"
           value={itemData.minimum_stock}
           onChange={(e) => setItemData({ ...itemData, minimum_stock: parseFloat(e.target.value) || 0 })}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="current_stock">Quantidade Inicial de Estoque</Label>
+        <Input
+          id="current_stock"
+          type="number"
+          min="0"
+          step="0.01"
+          value={itemData.current_stock}
+          onChange={(e) => setItemData({ ...itemData, current_stock: parseFloat(e.target.value) || 0 })}
         />
       </div>
 
